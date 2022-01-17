@@ -5,7 +5,8 @@ from DroneTypes import *
 
 
 def distance(p0: Position, p1: Position):
-    return math.sqrt(pow(p0.x_m-p1.x_m, 2)+pow(p0.y_m-p1.y_m, 2)+pow(p0.z_m-p1.z_m, 2))
+    return math.sqrt(pow(p0.x_m - p1.x_m, 2) + pow(p0.y_m - p1.y_m, 2) + pow(p0.z_m - p1.z_m, 2))
+
 
 class Pathfinder:
     def __init__(self, client: DroneClient, goal: Position):
@@ -39,7 +40,8 @@ class Pathfinder:
         heuristic_distances = [
             distance(drone_pos, p) + distance(p, self.goal) for p in point_cloud.points]
         min_heuristic_distance = min(heuristic_distances)
-        idx_min_heuristic_distance = heuristic_distances.index(min_heuristic_distance)
+        idx_min_heuristic_distance = heuristic_distances.index(
+            min_heuristic_distance)
         self.leave_distance = min_heuristic_distance
         min_heuristic_point = point_cloud.points[idx_min_heuristic_distance]
 
