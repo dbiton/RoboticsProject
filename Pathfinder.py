@@ -36,11 +36,12 @@ class Pathfinder:
             return True
 
         point_cloud = self.client.getLidarData()
-        heuristic_distances = [distance(drone_pos, p) + distance(p, self.goal) for p in point_cloud]
+        heuristic_distances = [
+            distance(drone_pos, p) + distance(p, self.goal) for p in point_cloud.points]
         min_heuristic_distance = min(heuristic_distances)
         idx_min_heuristic_distance = heuristic_distances.index(min_heuristic_distance)
         self.leave_distance = min_heuristic_distance
-        min_heuristic_point = point_cloud[idx_min_heuristic_distance]
+        min_heuristic_point = point_cloud.points[idx_min_heuristic_distance]
 
         if self.min_boundary_distance <= min_heuristic_distance:
             self.followBoundary()
