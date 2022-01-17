@@ -29,7 +29,7 @@ class Pathfinder:
     def followBoundary(self):
         pass
 
-    def pathfind(self):
+    def FindPath(self):
         pose = self.client.getPose()
         drone_pos = pose.pos
         goal_distance = distance(drone_pos, self.goal)

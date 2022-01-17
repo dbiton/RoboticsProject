@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     path_finder = Pathfinder(client, goal)
 
-    # path_finder.pathfind()
+    # path_finder.FindPath()
     while True:
         print(client.getLidarData())
         time.sleep(1)
