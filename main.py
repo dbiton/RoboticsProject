@@ -21,9 +21,13 @@ if __name__ == "__main__":
     goal.y_m = -100
     goal.z_m = -100
 
-    path_finder = Pathfinder(client, goal)
+    tangent_bug = TangentBug()
 
-    # path_finder.FindPath()
+    plane_epsilon = 1
     while True:
-        print(client.getLidarData())
-        time.sleep(1)
+        point_cloud = client.getLidarData().points
+        drone_pos = client.getPose().pos
+        point_cloud_2d = [(p.x_m, p.y_m) for p in point_cloud if math.abs(p.z_m-drone_pos.z_m) < plane_epsilon]
+        drone_pos_2d = (drone_pos.x_m, drone_pos.y_m)
+        dst_2d = tangent_bug.pathfind(drone_pos_2d, point_cloud_2d)
+        client.flyToPosition(dst_2d[0], dst_2d[1], drone_pos.z_m)
