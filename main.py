@@ -1,13 +1,8 @@
 from DroneClient import DroneClient
 from DroneTypes import *
 import time
+from Pathfinder import Pathfinder
 import airsim.utils
-
-def fly(drone: DroneClient, target: Position):
-    while True:
-        print(drone.getLidarData())
-        print(drone.getPose())
-        time.sleep(1)
 
 if __name__ == "__main__":
     client = DroneClient()
@@ -21,9 +16,18 @@ if __name__ == "__main__":
     # time.sleep(3)
     # client.flyToPosition(-346, -420, -100, 10)
 
-    target_pos = Position()
-    target_pos.x_m = -250
-    target_pos.y_m = -300
-    target_pos.z_m = -100
+    goal = Position()
+    goal.x_m = -100
+    goal.y_m = -100
+    goal.z_m = -100
 
-    fly(client, target_pos)
+    tangent_bug = TangentBug()
+
+    plane_epsilon = 1
+    while True:
+        point_cloud = client.getLidarData().points
+        drone_pos = client.getPose().pos
+        point_cloud_2d = [(p.x_m, p.y_m) for p in point_cloud if math.abs(p.z_m-drone_pos.z_m) < plane_epsilon]
+        drone_pos_2d = (drone_pos.x_m, drone_pos.y_m)
+        dst_2d = tangent_bug.pathfind(drone_pos_2d, point_cloud_2d)
+        client.flyToPosition(dst_2d[0], dst_2d[1], drone_pos.z_m)
