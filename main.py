@@ -3,9 +3,10 @@ from DroneTypes import *
 import time
 import airsim.utils
 
-def fly(start: Position, end: Position):
+def fly(drone: DroneClient, target: Position):
     while True:
-        print(client.getLidarData())
+        print(drone.getLidarData())
+        print(drone.getPose())
         time.sleep(1)
 
 if __name__ == "__main__":
@@ -20,9 +21,9 @@ if __name__ == "__main__":
     # time.sleep(3)
     # client.flyToPosition(-346, -420, -100, 10)
 
-    start_pos = Position()
-    start_pos.x_m = -346
-    start_pos.y_m = -700
-    start_pos.z_m = -100
+    target_pos = Position()
+    target_pos.x_m = -250
+    target_pos.y_m = -300
+    target_pos.z_m = -100
 
-    fly(start_pos, start_pos)
+    fly(client, target_pos)
