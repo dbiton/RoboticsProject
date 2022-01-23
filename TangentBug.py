@@ -74,8 +74,8 @@ class TangentBug:
         point_distances = [distance(pos, p) for p in points]
         i = point_distances.index(min(point_distances))
         boundary_point = points[i]
-        reach_distance = distance(pos, goal)
-        followed_distance = distance(boundary_point, goal)
+        reach_distance = distance(pos, self.goal)
+        followed_distance = distance(boundary_point, self.goal)
         if reach_distance >= followed_distance:
             boundary_normal = vector(boundary_point, pos)
             boundary_tangent = (boundary_normal[1], -boundary_normal[0])
@@ -85,7 +85,7 @@ class TangentBug:
             return self.motionToGoal(pos, points)
 
     def pathfind(self, pos: (float, float), points: list):
-        if distance(pos, goal) < self.goal_distance_epsilon:
+        if distance(pos, self.goal) < self.goal_distance_epsilon:
             return pos
         if self.is_following_boundary:
             return self.followBoundary(pos, points)

@@ -1,7 +1,7 @@
 from DroneClient import DroneClient
 from DroneTypes import *
 import time
-from Pathfinder import Pathfinder
+from TangentBug import TangentBug
 import airsim.utils
 
 if __name__ == "__main__":

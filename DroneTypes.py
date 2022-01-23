@@ -10,10 +10,10 @@ class Position:
     def __str__(self):
         return f'({self.x_m}, {self.y_m}, {self.z_m})'
 
-    def vectorTo(self, o: Position):
-        return Vector(x_m - o.x_m, y_m - o.y_m, z_m - o.z_m)
+    def vectorTo(self, o):
+        return Vector(self.x_m - o.x_m, self.y_m - o.y_m, self.z_m - o.z_m)
 
-    def distanceTo(self, o: Position):
+    def distanceTo(self, o):
         return self.vectorTo(o).length()
 
 
