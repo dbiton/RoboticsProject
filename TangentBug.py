@@ -38,15 +38,15 @@ class TangentBug:
         for i in range(len(polar_points)):
             p0 = polar_points[i - 1]
             p1 = polar_points[i]
-            if math.abs(p0[0] - p1[0]) > self.segment_len_epsilon or math.abs(p0[1] - p1[1]) > self.segment_rot_epsilon:
+            if abs(p0[0] - p1[0]) > self.segment_len_epsilon or abs(p0[1] - p1[1]) > self.segment_rot_epsilon:
                 edges.append(polarToCartesian(p0))
         return edges
 
     def goalPathIntersectsSegment(self, pos: (float, float), polar_points: list):
         angle = math.atan2(self.goal[1] - pos[1], self.goal[0] - pos[0])
-        pps_sorted = polar_points.sorted(key=math.abs(itemgetter(1) - angle))
+        pps_sorted = sorted(polar_points, key=lambda v: v[1] - angle)
         p = pps_sorted[0]
-        if math.abs(p[1] - angle) < self.segment_rot_epsilon:
+        if abs(p[1] - angle) < self.segment_rot_epsilon:
             return distance(pos, self.goal) > p[0]
         else:
             return False
