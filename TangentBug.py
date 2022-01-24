@@ -45,6 +45,8 @@ class TangentBug:
         return edges
 
     def goalPathIntersectsSegment(self, pos: (float, float), polar_points: list):
+        if len(polar_points) == 0:
+            return False
         angle = math.atan2(self.goal[1] - pos[1], self.goal[0] - pos[0])
         pps_sorted = sorted(polar_points, key=lambda v: v[1] - angle)
         p = pps_sorted[0]
