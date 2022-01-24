@@ -23,6 +23,8 @@ def vector(src: (float, float), dst: (float, float)):
 
 class TangentBug:
     def __init__(self):
+        self.grid_size = 1
+        self.memory = list()
         self.prev_heuristic_distance = float("inf")
         self.is_following_boundary = False
         self.goal = (0, 0)
@@ -51,8 +53,8 @@ class TangentBug:
         else:
             return False
 
-    def motionToGoal(self, pos, points):
-        polar_points = [cartesianToPolar(p) for p in points]
+    def motionToGoal(self, pos):
+        polar_points = [cartesianToPolar(p) for p in self.memory]
         polar_points.sort(key=itemgetter(1))
         if self.goalPathIntersectsSegment(pos, polar_points):
             edge_points = self.calcEdgePoints(polar_points)
@@ -66,14 +68,14 @@ class TangentBug:
             else:
                 self.prev_heuristic_distance = float("inf")
                 self.is_following_boundary = True
-                return self.followBoundary(pos, points)
+                return self.followBoundary(pos)
         else:
             return vector(pos, self.goal)
 
-    def followBoundary(self, pos, points: list):
-        point_distances = [distance(pos, p) for p in points]
+    def followBoundary(self, pos):
+        point_distances = [distance(pos, p) for p in self.memory]
         i = point_distances.index(min(point_distances))
-        boundary_point = points[i]
+        boundary_point = self.memory[i]
         reach_distance = distance(pos, self.goal)
         followed_distance = distance(boundary_point, self.goal)
         if reach_distance >= followed_distance:
@@ -82,12 +84,19 @@ class TangentBug:
             return pos[0]+boundary_tangent[0], pos[1]+boundary_tangent[1]
         else:
             self.is_following_boundary = False
-            return self.motionToGoal(pos, points)
+            return self.motionToGoal(pos)
+
+    def add_to_memory(self, pos: (float, float), points: list):
+        grid_points = [(math.floor((pos[0]+p[0])/self.grid_size)*self.grid_size,
+                        math.floor((pos[1]+p[1])/self.grid_size)*self.grid_size) for p in points]
+        grid_points = [p for p in grid_points if p not in self.memory]
+        self.memory += grid_points
 
     def pathfind(self, pos: (float, float), points: list):
         if distance(pos, self.goal) < self.goal_distance_epsilon:
             return pos
+        self.add_to_memory(pos, points)
         if self.is_following_boundary:
-            return self.followBoundary(pos, points)
+            return self.followBoundary(pos)
         else:
-            return self.motionToGoal(pos, points)
+            return self.motionToGoal(pos)
