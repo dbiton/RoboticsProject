@@ -3,7 +3,6 @@ from DroneTypes import *
 from vec2 import *
 import time
 from TangentBug import runTangentBug
-import airsim.utils
 
 
 def checkObstacles(client: DroneClient, pos: Vec2, goal: Vec2) -> bool:
@@ -53,7 +52,6 @@ def startAndStop(client: DroneClient, goal: Position) -> bool:
 if __name__ == "__main__":
     client = DroneClient()
     client.connect()
-
 
     print(client.isConnected())
 
