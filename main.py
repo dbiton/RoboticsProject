@@ -16,7 +16,7 @@ if __name__ == "__main__":
     time.sleep(4)
 
     goal = Position()
-    goal.x_m = -300
-    goal.y_m = -400
+    goal.x_m = -400
+    goal.y_m = -300
     goal.z_m = -100
     startAndStop(client, goal)
