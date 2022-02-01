@@ -1,38 +1,44 @@
 from operator import itemgetter
 import math
+from typing import Tuple
 
 from DroneClient import *
 from DroneTypes import *
 
-def vectorNormalized(p: (float, float)):
-    return vectorMul(p, 1.0/vectorLen(p))
 
-def vectorMul(p: (float, float), a: float):
-    return p[0]*a, p[1]*a
+def vectorNormalized(p: Tuple[float, float]):
+    return vectorMul(p, 1.0 / vectorLen(p))
 
-def vectorAdd(p0: (float, float), p1: (float, float)):
+
+def vectorMul(p: Tuple[float, float], a: float):
+    return p[0] * a, p[1] * a
+
+
+def vectorAdd(p0: Tuple[float, float], p1: Tuple[float, float]):
     return p0[0] + p1[0], p0[1] + p1[1]
 
 
-def vectorSub(p0: (float, float), p1: (float, float)):
+def vectorSub(p0: Tuple[float, float], p1: Tuple[float, float]):
     return p0[0] - p1[0], p0[1] - p1[1]
 
 
-def cartesianToPolar(p: (float, float)):
+def cartesianToPolar(p: Tuple[float, float]):
     return math.sqrt(p[0] ** 2 + p[1] ** 2), math.atan2(p[1], p[0])
 
 
-def polarToCartesian(p: (float, float)):
+def polarToCartesian(p: Tuple[float, float]):
     return p[0] * math.cos(p[1]), p[0] * math.sin(p[1])
 
 
-def distance(p0: (float, float), p1: (float, float)):
+def distance(p0: Tuple[float, float], p1: Tuple[float, float]):
     return math.sqrt((p0[0] - p1[0]) ** 2 + (p0[1] - p1[1]) ** 2)
 
-def vectorLen(p: (float, float)):
+
+def vectorLen(p: Tuple[float, float]):
     return math.sqrt((p[0]) ** 2 + (p[1]) ** 2)
 
-def vector(src: (float, float), dst: (float, float)):
+
+def vector(src: Tuple[float, float], dst: Tuple[float, float]):
     return dst[0] - src[0], dst[1] - dst[1]
 
 
@@ -48,7 +54,7 @@ class TangentBug:
         self.goal_distance_epsilon = 1
         self.building_distance_epsilon = 15
 
-    def setGoal(self, goal: (float, float)):
+    def setGoal(self, goal: Tuple[float, float]):
         self.goal = goal
 
     def calcEdgePoints(self, polar_points: list):
@@ -60,18 +66,22 @@ class TangentBug:
                 edges.append(polarToCartesian(p0))
         return edges
 
-    def goalPathIntersectsSegment(self, pos: (float, float), polar_points: list):
+    def goalPathIntersectsSegment(self, pos: Tuple[float, float], polar_points: list):
         angle_goal = math.atan2(self.goal[1] - pos[1], self.goal[0] - pos[0])
-        path_distances = [p[0]*abs(math.sin(p[1]-angle_goal)) for p in polar_points]
+        path_distances = [p[0] * abs(math.sin(p[1] - angle_goal))
+                          for p in polar_points]
         return min(path_distances, default=float('inf')) < self.building_distance_epsilon
 
     def motionToGoal(self, pos):
-        polar_points = [cartesianToPolar(vectorSub(p, pos)) for p in self.memory]
+        polar_points = [cartesianToPolar(vectorSub(p, pos))
+                        for p in self.memory]
         polar_points.sort(key=itemgetter(1))
         if self.goalPathIntersectsSegment(pos, polar_points):
             edge_points = self.calcEdgePoints(polar_points)
-            heuristic_distances = [distance(pos, o) + distance(o, self.goal) for o in edge_points]
-            min_heuristic_distance = min(heuristic_distances, default=float('inf'))
+            heuristic_distances = [
+                distance(pos, o) + distance(o, self.goal) for o in edge_points]
+            min_heuristic_distance = min(
+                heuristic_distances, default=float('inf'))
             if min_heuristic_distance < self.prev_heuristic_distance:
                 self.prev_heuristic_distance = min_heuristic_distance
                 i = heuristic_distances.index(min_heuristic_distance)
@@ -96,7 +106,8 @@ class TangentBug:
         if reach_distance >= followed_distance:
             print("b0")
             boundary_normal = vector(boundary_point, pos)
-            boundary_tangent = vectorNormalized((boundary_normal[1], -boundary_normal[0]))
+            boundary_tangent = vectorNormalized(
+                (boundary_normal[1], -boundary_normal[0]))
             print('dir', boundary_tangent)
             return vectorAdd(pos, vectorMul(boundary_tangent, 10))
         else:
@@ -104,13 +115,13 @@ class TangentBug:
             self.is_following_boundary = False
             return self.motionToGoal(pos)
 
-    def add_to_memory(self, pos: (float, float), points: list):
+    def add_to_memory(self, pos: Tuple[float, float], points: list):
         grid_points = [(math.floor((pos[0] + p[0]) / self.grid_size) * self.grid_size,
                         math.floor((pos[1] + p[1]) / self.grid_size) * self.grid_size) for p in points]
         grid_points = [p for p in grid_points if p not in self.memory]
         self.memory += grid_points
 
-    def pathfind(self, pos: (float, float), points: list):
+    def pathfind(self, pos: Tuple[float, float], points: list):
         print('following boundary: ', self.is_following_boundary)
         if distance(pos, self.goal) < self.goal_distance_epsilon:
             return pos
