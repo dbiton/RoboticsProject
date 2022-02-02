@@ -2,7 +2,7 @@ from DroneClient import DroneClient
 from DroneTypes import *
 from vec2 import *
 import time
-from TangentBug import runTangentBug, startAndStop
+from TangentBug import SimpleBug, runTangentBug
 
 
 if __name__ == "__main__":
@@ -15,8 +15,8 @@ if __name__ == "__main__":
     client.setAtPosition(-346, -700, -100)
     time.sleep(4)
 
-    goal = Position()
-    goal.x_m = -400
-    goal.y_m = -300
-    goal.z_m = -100
-    startAndStop(client, goal)
+    goal = Vec2(-400, -300)
+    plane = -100
+
+    bug = SimpleBug(client, plane)
+    bug.startAndStop(goal)

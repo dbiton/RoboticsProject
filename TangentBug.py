@@ -158,66 +158,115 @@ class TangentBug:
 
 # smaller steps towards tangent-bug
 
-def detectObstacles(client: DroneClient, pos: Vec2) -> Generator[Vec2, None, None]:
+class SimpleBug():
+    plane_epsilon: float = 1
     """
-    find points around the drone in the world frame, detected by the drones LIDAR
+    a far a point can be away from the drone in the z axis,
+    # for it to count as being on the same plane
     """
-    plane_epsilon = 1
-    angle = client.getPose().orientation.z_rad
-    point_cloud = client.getLidarData().points
 
-    if len(point_cloud) < 3:
-        # the cloud is empty, no points where observed
-        return
-
-    for i in range(0, len(point_cloud), 3):
-
-        if abs(point_cloud[i + 2]) >= plane_epsilon:
-            # ignore points outside the flight plane
-            continue
-
-        body_point = Vec2(point_cloud[i], point_cloud[i + 1])
-        world_point = body_point.rotate(angle) + pos
-        yield world_point
-
-
-def checkObstaclesInPath(pos: Vec2, goal: Vec2, obstacle_points: Set[Vec2]) -> bool:
+    colision_radius: float = 5
     """
-    checks if there is an obstacle in the path between the drone and the goal
+    how far a line can be from a point in the plane,
+    for it to count having colided with it
     """
-    colision_radius = 5
 
-    # stop if apporching an obstacle
-    return any(checkoverlapCircle(pos, goal, p, colision_radius) for p in obstacle_points)
-
-
-def startAndStop(client: DroneClient, goal: Position) -> bool:
+    drone_velocity: float = 10
     """
-    flies the drone in the direction of the goal,
-    stopping if there is an obstacle in the way.
-    returns whether the goal was reached
+    the maximum velocity the drone can have while flying.
+    can be lower (for example while turing)
     """
-    drone_velocity = 10
-    distance_epsilon = 3
 
-    obstacle_points: Set[Vec2] = set()
+    goal_epsilon: float = 3
+    """
+    how far the current position of the drone can be from the goal,
+    for it to count as having reached the goal
+    """
 
-    client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, drone_velocity)
-    while True:
-        pos = client.getPose().pos
-        goal_v = Vec2(goal.x_m, goal.y_m)
-        pos_v = Vec2(pos.x_m, pos.y_m)
+    client: DroneClient
+    """
+    the client with which the the algorithm communicates with the drone
+    """
 
-        for p in detectObstacles(client, pos_v):
-            obstacle_points.add(p)
+    obstacle_points: Set[Vec2]
+    """
+    the points detected by the drone on the way to the goal
+    """
 
-        if pos_v.distance(goal_v) <= distance_epsilon:
-            client.flyToPosition(pos.x_m, pos.y_m, pos.z_m, 0.0001)
-            return True
-        elif checkObstaclesInPath(pos_v, goal_v, obstacle_points):
-            client.flyToPosition(pos.x_m, pos.y_m, pos.z_m, 0.0001)
-            return False
-        time.sleep(0.1)
+    plane: float
+    """
+    the z coordinate of the plane in which the algorithm is executed
+    """
+
+    def __init__(self, client: DroneClient, plane: float) -> None:
+        self.client = client
+        self.plane = plane
+        self.obstacle_points = set()
+
+    def stop(self):
+        """
+        make the drone hover in place
+        """
+        pos = self.getPosition()
+        self.client.flyToPosition(pos.x, pos.y, self.plane, 0.0001)
+
+    def getPosition(self) -> Vec2:
+        """
+        get the current position of the drone
+        """
+        pos = self.client.getPose().pos
+        return Vec2(pos.x_m, pos.y_m)
+
+    def detectObstacles(self) -> Generator[Vec2, None, None]:
+        """
+        find points around the drone, detected by the drones LIDAR,
+        relative to the given position and orientation on the plane
+        """
+        pos = self.getPosition()
+        angle = self.client.getPose().orientation.z_rad
+        point_cloud = self.client.getLidarData().points
+
+        if len(point_cloud) < 3:
+            # the cloud is empty, no points where observed
+            return
+
+        for i in range(0, len(point_cloud), 3):
+            plane_delta = point_cloud[i + 2]
+            if abs(plane_delta) >= self.plane_epsilon:
+                # ignore points outside the flight plane
+                continue
+            body_point = Vec2(point_cloud[i], point_cloud[i + 1])
+            world_point = body_point.rotate(angle) + pos
+            yield world_point
+
+    def checkObstaclesInPath(self, goal: Vec2) -> bool:
+        """
+        checks if there is an obstacle in the path between the drone and the goal
+        """
+        pos = self.getPosition()
+        return any(checkoverlapCircle(pos, goal, p, self.colision_radius) for p in self.obstacle_points)
+
+    def startAndStop(self, goal: Vec2) -> bool:
+        """
+        flies the drone in the direction of the goal,
+        stopping if there is an obstacle in the way.
+        returns whether the goal was reached
+        """
+        self.client.flyToPosition(
+            goal.x, goal.y, self.plane, self.drone_velocity)
+        while True:
+            pos = self.getPosition()
+
+            for p in self.detectObstacles():
+                self.obstacle_points.add(p)
+
+            if pos.distance(goal) <= self.goal_epsilon:
+                self.stop()
+                return True
+            elif self.checkObstaclesInPath(goal):
+                self.stop()
+                return False
+            time.sleep(0.1)
 
 
 # used in the bonux task for keeping track of points in the entire map
