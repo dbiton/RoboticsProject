@@ -239,6 +239,16 @@ class SimpleBug():
             world_point = body_point.rotate(angle) + pos
             yield world_point
 
+    def addObstaclePoint(self, point: Vec2):
+        """
+        add a point on an obstacle to the drones memory
+        """
+        # round up the coordinates of the point
+        # to avoid storing redundant points
+        x = math.floor(point.x)
+        y = math.floor(point.y)
+        self.obstacle_points.add(Vec2(x, y))
+
     def checkObstaclesInPath(self, goal: Vec2) -> bool:
         """
         checks if there is an obstacle in the path between the drone and the goal
@@ -258,7 +268,7 @@ class SimpleBug():
             pos = self.getPosition()
 
             for p in self.detectObstacles():
-                self.obstacle_points.add(p)
+                self.addObstaclePoint(p)
 
             if pos.distance(goal) <= self.goal_epsilon:
                 self.stop()
