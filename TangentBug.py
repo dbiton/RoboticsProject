@@ -1,7 +1,7 @@
 from operator import itemgetter
 import math
 import time
-from typing import Tuple
+from typing import Generator, Set, Tuple
 
 from DroneClient import *
 from DroneTypes import *
@@ -158,24 +158,37 @@ class TangentBug:
 
 # smaller steps towards tangent-bug
 
-def checkObstacles(client: DroneClient, pos: Vec2, goal: Vec2) -> bool:
+def detectObstacles(client: DroneClient, pos: Vec2) -> Generator[Vec2, None, None]:
+    """
+    find points around the drone in the world frame, detected by the drones LIDAR
+    """
+    plane_epsilon = 1
+    angle = client.getPose().orientation.z_rad
+    point_cloud = client.getLidarData().points
+
+    if len(point_cloud) < 3:
+        # the cloud is empty, no points where observed
+        return
+
+    for i in range(0, len(point_cloud), 3):
+
+        if abs(point_cloud[i + 2]) >= plane_epsilon:
+            # ignore points outside the flight plane
+            continue
+
+        body_point = Vec2(point_cloud[i], point_cloud[i + 1])
+        world_point = body_point.rotate(angle) + pos
+        yield world_point
+
+
+def checkObstaclesInPath(pos: Vec2, goal: Vec2, obstacle_points: Set[Vec2]) -> bool:
     """
     checks if there is an obstacle in the path between the drone and the goal
     """
-    plane_epsilon = 1
     colision_radius = 5
 
-    # find the goal in body frame to match the cloud
-    angle = client.getPose().orientation.z_rad
-    point_cloud = client.getLidarData().points
-    point_cloud_2d = [] if len(point_cloud) < 3 else [Vec2(point_cloud[i], point_cloud[i + 1])
-                                                      for i in range(0, len(point_cloud), 3)
-                                                      if abs(point_cloud[i + 2]) < plane_epsilon]
-    # find the corresponding points in the world frame
-    point_cloud_world = [p.rotate(angle) + pos for p in point_cloud_2d]
-
     # stop if apporching an obstacle
-    return any(checkoverlapCircle(pos, goal, p, colision_radius) for p in point_cloud_world)
+    return any(checkoverlapCircle(pos, goal, p, colision_radius) for p in obstacle_points)
 
 
 def startAndStop(client: DroneClient, goal: Position) -> bool:
@@ -187,16 +200,21 @@ def startAndStop(client: DroneClient, goal: Position) -> bool:
     drone_velocity = 10
     distance_epsilon = 3
 
+    obstacle_points: Set[Vec2] = set()
+
     client.flyToPosition(goal.x_m, goal.y_m, goal.z_m, drone_velocity)
     while True:
         pos = client.getPose().pos
         goal_v = Vec2(goal.x_m, goal.y_m)
         pos_v = Vec2(pos.x_m, pos.y_m)
 
+        for p in detectObstacles(client, pos_v):
+            obstacle_points.add(p)
+
         if pos_v.distance(goal_v) <= distance_epsilon:
             client.flyToPosition(pos.x_m, pos.y_m, pos.z_m, 0.0001)
             return True
-        elif checkObstacles(client, pos_v, goal_v):
+        elif checkObstaclesInPath(pos_v, goal_v, obstacle_points):
             client.flyToPosition(pos.x_m, pos.y_m, pos.z_m, 0.0001)
             return False
         time.sleep(0.1)
