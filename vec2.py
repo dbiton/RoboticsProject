@@ -1,17 +1,14 @@
-import time
+from dataclasses import dataclass
 import math
 
 
+@dataclass(unsafe_hash=True, frozen=True)
 class Vec2:
     x: float
     y: float
 
-    def __init__(self, x: float, y: float) -> None:
-        self.x = x
-        self.y = y
-
-    def __str__(self) -> str:
-        return f"({self.x}, {self.y})"
+    # makes using these fields more memory and runtime efficient
+    __slots__ = ['x', 'y']
 
     def __add__(self, other: "Vec2") -> "Vec2":
         return Vec2(self.x + other.x, self.y + other.y)
