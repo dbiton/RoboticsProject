@@ -218,3 +218,46 @@ def startAndStop(client: DroneClient, goal: Position) -> bool:
             client.flyToPosition(pos.x_m, pos.y_m, pos.z_m, 0.0001)
             return False
         time.sleep(0.1)
+
+
+# used in the bonux task for keeping track of points in the entire map
+class ObstacleMap:
+    """
+    a map describing the obstacles observed by the drone in its path
+    """
+
+    # each element corresponds to a meter by meter pixel on the map
+    # the indicies are mapped to coordinates,
+    # in the range specified by *_start and *_end for each axis
+    #
+    # an inhabited pixel is marked with 1 and an empty one with 0
+    array: bytearray
+    y_start: int
+    y_end: int
+    x_start: int
+    x_end: int
+
+    def __init__(self, y_start: int = -1300, y_end: int = 200, x_start: int = -1300, x_end: int = 200) -> None:
+        self.y_start = y_start
+        self.y_end = y_end
+        self.x_start = x_start
+        self.x_end = x_end
+        self.array = bytearray((y_end - y_start) * (x_end - x_start))
+
+    def row_size(self) -> int:
+        return (self.y_end - self.y_start)
+
+    def column_size(self) -> int:
+        return (self.x_end - self.x_start)
+
+    def mark(self, point: Vec2):
+        """
+        mark the given point as an obstacle on the map
+        """
+        x = math.floor(point.x)
+        y = math.floor(point.y)
+
+        i = y - self.y_start
+        j = x - self.x_start
+
+        self.array[i * self.row_size() + j] = 1
