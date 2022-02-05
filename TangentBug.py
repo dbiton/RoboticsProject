@@ -285,6 +285,10 @@ class SimpleBug():
                 return False
             time.sleep(self.time_step)
 
+    def heuristicDistance(self, point: Vec2, goal: Vec2) -> float:
+        pos = self.getPosition()
+        return pos.distance(point) + point.distance(goal)
+
 
 # used in the bonux task for keeping track of points in the entire map
 class ObstacleMap:
