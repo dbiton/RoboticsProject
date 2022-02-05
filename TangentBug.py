@@ -291,6 +291,46 @@ class SimpleBug():
                 return False
             time.sleep(self.time_step)
 
+    def motionToGoal(self, goal: Vec2) -> bool:
+        """
+        flies the drone in the direction of the goal,
+        attempting to circumvent convex obstacles.
+        returns whether the goal was reached
+        """
+        last_heuristic_distance = math.inf
+        while True:
+            pos = self.getPosition()
+            if pos.distance(goal) <= self.goal_epsilon:
+                self.stop()
+                return True
+
+            for p in self.detectObstacles():
+                self.addObstaclePoint(p)
+
+            if self.checkObstaclesInPath(goal):
+                clockwise_point = self.findDiscontinuityPoint(goal, True)
+                counter_clockwise_point = self.findDiscontinuityPoint(
+                    goal, False)
+
+                closest_point = min(
+                    clockwise_point, counter_clockwise_point, key=lambda p: self.heuristicDistance(p, goal))
+                heuristic_distance = self.heuristicDistance(
+                    closest_point, goal)
+
+                if last_heuristic_distance < heuristic_distance:
+                    # TODO: inplement boundary following
+                    self.stop()
+                    return False
+                else:
+                    last_heuristic_distance = heuristic_distance
+                    self.client.flyToPosition(
+                        closest_point.x, closest_point.y, self.plane, self.drone_velocity)
+            else:
+                self.client.flyToPosition(
+                    goal.x, goal.y, self.plane, self.drone_velocity)
+
+            time.sleep(self.time_step)
+
     def findDiscontinuityPoint(self, goal: Vec2, clockwise: bool) -> Vec2:
         """
         find the first point that is disconnected from the obstacle,
