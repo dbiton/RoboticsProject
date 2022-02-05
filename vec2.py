@@ -34,9 +34,11 @@ class Vec2:
     def dot(self, other: "Vec2") -> float:
         return self.x * other.x + self.y * other.y
 
+    def length(self) -> float:
+        return math.sqrt(self.dot(self))
+
     def distance(self, other: "Vec2") -> float:
-        segment = other - self
-        return math.sqrt(segment.dot(segment))
+        return (other - self).length()
 
     def signed_area(self, other: "Vec2") -> float:
         """
