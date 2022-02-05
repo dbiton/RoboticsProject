@@ -177,6 +177,13 @@ class SimpleBug():
     can be lower (for example while turing)
     """
 
+    # matches the maximum number of points the sensors can find in a second
+    time_step: float = 1 / 25
+    """
+    the interval, in seconds, between each iteration of the algorithm,
+    to ensure the busy loop isn't doing redundant computation
+    """
+
     goal_epsilon: float = 3
     """
     how far the current position of the drone can be from the goal,
@@ -276,7 +283,7 @@ class SimpleBug():
             elif self.checkObstaclesInPath(goal):
                 self.stop()
                 return False
-            time.sleep(0.1)
+            time.sleep(self.time_step)
 
 
 # used in the bonux task for keeping track of points in the entire map
