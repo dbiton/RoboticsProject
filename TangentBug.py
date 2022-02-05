@@ -190,6 +190,12 @@ class SimpleBug():
     for it to count as having reached the goal
     """
 
+    sensor_range: float = 35
+    """
+    the maximum distance away from the drone, a point can be detected by its sensors,
+    while a point outside that range, it is ignored by the path finding algorithm.
+    """
+
     client: DroneClient
     """
     the client with which the the algorithm communicates with the drone
@@ -284,6 +290,46 @@ class SimpleBug():
                 self.stop()
                 return False
             time.sleep(self.time_step)
+
+    def findDiscontinuityPoint(self, goal: Vec2, clockwise: bool) -> Vec2:
+        """
+        find the first point that is disconnected from the obstacle,
+        in either the clockwise or counter-clockwise direction,
+        """
+        pos = self.getPosition()
+
+        path = goal - pos
+
+        nearby_points = (
+            p - pos for p in self.obstacle_points if pos.distance(p) < self.sensor_range)
+
+        points = sorted(nearby_points, key=lambda p: path.angle(p))
+
+        blocking_point = min((p for p in points if checkoverlapCircle(
+            pos, goal, p + pos, self.colision_radius)), key=lambda p: p.length())
+
+        # the points of the blocking obstacle, connected by their colision circles
+        obstacle = [blocking_point]
+
+        # the angle from the path that is blocked by the obstacle
+        # the discontinuity point is the first outside that range
+        max_angle_covered = getFoVCoverage(
+            blocking_point, self.colision_radius) / 2
+
+        directed_points = points if clockwise else reversed(points)
+
+        for point in directed_points:
+            if any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
+                obstacle.append(point)
+
+                fov_coverage = getFoVCoverage(point, self.colision_radius)
+                max_angle_covered = max(
+                    max_angle_covered, path.angle(point) + fov_coverage / 2)
+
+            elif path.angle(point) > max_angle_covered:
+                return point + pos
+
+        return obstacle[-1]
 
     def heuristicDistance(self, point: Vec2, goal: Vec2) -> float:
         pos = self.getPosition()
