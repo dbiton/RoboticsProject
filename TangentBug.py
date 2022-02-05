@@ -245,8 +245,8 @@ class SimpleBug():
         """
         # round up the coordinates of the point
         # to avoid storing redundant points
-        x = math.floor(point.x)
-        y = math.floor(point.y)
+        x = round(point.x)
+        y = round(point.y)
         self.obstacle_points.add(Vec2(x, y))
 
     def checkObstaclesInPath(self, goal: Vec2) -> bool:
