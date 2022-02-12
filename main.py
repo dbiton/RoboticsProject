@@ -19,4 +19,4 @@ if __name__ == "__main__":
     plane = -100
 
     bug = SimpleBug(client, plane)
-    bug.motionToGoal(goal)
+    bug.findPath(goal)

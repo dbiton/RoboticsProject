@@ -269,6 +269,16 @@ class SimpleBug():
         pos = self.getPosition()
         return any(checkoverlapCircle(pos, goal, p, self.colision_radius) for p in self.obstacle_points)
 
+    def findPath(self, goal: Vec2):
+        """
+        flies the drone towards the goal,
+        avoiding obstacles as necessary using the tangent bug algorithm
+        """
+        while not self.motionToGoal(goal):
+            # TODO: inplement boundary following
+            self.stop()
+            return
+
     def startAndStop(self, goal: Vec2) -> bool:
         """
         flies the drone in the direction of the goal,
@@ -318,8 +328,6 @@ class SimpleBug():
                     closest_point, goal)
 
                 if last_heuristic_distance < heuristic_distance:
-                    # TODO: inplement boundary following
-                    self.stop()
                     return False
                 else:
                     last_heuristic_distance = heuristic_distance
