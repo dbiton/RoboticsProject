@@ -1,7 +1,7 @@
 from operator import itemgetter
 import math
 import time
-from typing import Generator, Set, Tuple
+from typing import Generator, List, Set, Tuple
 
 from DroneClient import *
 from DroneTypes import *
@@ -206,6 +206,12 @@ class SimpleBug():
     the points detected by the drone on the way to the goal, in world frame
     """
 
+    nearby_points: List[Vec2]
+    """
+    the points that are within range of the sensor, in body frame
+    sorted by their angle relative to the path to the goal
+    """
+
     position: Vec2
     """
     the current position of the drone in world frame, based on the latest measurements
@@ -225,6 +231,7 @@ class SimpleBug():
         self.client = client
         self.plane = plane
         self.obstacle_points = set()
+        self.nearby_points = []
         self.position = Vec2(0, 0)
         self.goal = Vec2(0, 0)
 
@@ -293,11 +300,15 @@ class SimpleBug():
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
 
+        self.nearby_points = sorted((p - self.position for p in self.obstacle_points
+                                     if p.distance(self.position) < self.sensor_range),
+                                    key=lambda p: self.goal.angle(p))
+
     def checkObstaclesInPath(self) -> bool:
         """
         checks if there is an obstacle in the path between the drone and the goal
         """
-        return any(checkoverlapCircle(Vec2(0, 0), self.goal, p - self.position, self.colision_radius) for p in self.obstacle_points)
+        return any(checkoverlapCircle(Vec2(0, 0), self.goal, p, self.colision_radius) for p in self.nearby_points)
 
     def findPath(self, goal: Vec2):
         """
@@ -370,14 +381,7 @@ class SimpleBug():
         find the first point that is disconnected from the obstacle,
         in either the clockwise or counter-clockwise direction,
         """
-        pos = self.position
-
-        nearby_points = (
-            p - pos for p in self.obstacle_points if pos.distance(p) < self.sensor_range)
-
-        points = sorted(nearby_points, key=lambda p: self.goal.angle(p))
-
-        blocking_point = min((p for p in points if checkoverlapCircle(
+        blocking_point = min((p for p in self.nearby_points if checkoverlapCircle(
             Vec2(0, 0), self.goal, p, self.colision_radius)), key=lambda p: p.length())
 
         # the points of the blocking obstacle, connected by their colision circles
@@ -388,7 +392,8 @@ class SimpleBug():
         max_angle_covered = getFoVCoverage(
             blocking_point, self.colision_radius) / 2
 
-        directed_points = points if clockwise else reversed(points)
+        directed_points = self.nearby_points if clockwise else reversed(
+            self.nearby_points)
 
         for point in directed_points:
             if any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
