@@ -203,7 +203,7 @@ class SimpleBug():
 
     obstacle_points: Set[Vec2]
     """
-    the points detected by the drone on the way to the goal
+    the points detected by the drone on the way to the goal, in world frame
     """
 
     plane: float
