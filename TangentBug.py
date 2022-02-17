@@ -211,6 +211,11 @@ class SimpleBug():
     the current position of the drone in world frame, based on the latest measurements
     """
 
+    goal: Vec2
+    """
+    the current goal which the drone is flying towards, in body frame
+    """
+
     plane: float
     """
     the z coordinate of the plane in which the algorithm is executed
@@ -221,6 +226,7 @@ class SimpleBug():
         self.plane = plane
         self.obstacle_points = set()
         self.position = Vec2(0, 0)
+        self.goal = Vec2(0, 0)
 
     def stop(self):
         """
@@ -228,6 +234,13 @@ class SimpleBug():
         """
         pos = self.position
         self.client.flyToPosition(pos.x, pos.y, self.plane, 0.0001)
+
+    def setGoal(self, goal: Vec2):
+        """
+        sets a new goal point for the drone,
+        given its position in the world frame
+        """
+        self.goal = goal - self.position
 
     def getPosition(self) -> Vec2:
         """
@@ -273,23 +286,25 @@ class SimpleBug():
         update the state of the drone and surrounding obstacles,
         based on the latest data from the sensors
         """
+        abs_goal = self.goal + self.position
         self.position = self.getPosition()
+        self.goal = abs_goal - self.position
 
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
 
-    def checkObstaclesInPath(self, goal: Vec2) -> bool:
+    def checkObstaclesInPath(self) -> bool:
         """
         checks if there is an obstacle in the path between the drone and the goal
         """
-        pos = self.position
-        return any(checkoverlapCircle(pos, goal, p, self.colision_radius) for p in self.obstacle_points)
+        return any(checkoverlapCircle(Vec2(0, 0), self.goal, p - self.position, self.colision_radius) for p in self.obstacle_points)
 
     def findPath(self, goal: Vec2):
         """
         flies the drone towards the goal,
         avoiding obstacles as necessary using the tangent bug algorithm
         """
+        self.setGoal(goal)
         while not self.motionToGoal(goal):
             # TODO: inplement boundary following
             self.stop()
@@ -310,7 +325,7 @@ class SimpleBug():
             if pos.distance(goal) <= self.goal_epsilon:
                 self.stop()
                 return True
-            elif self.checkObstaclesInPath(goal):
+            elif self.checkObstaclesInPath():
                 self.stop()
                 return False
             time.sleep(self.time_step)
@@ -325,15 +340,13 @@ class SimpleBug():
         while True:
             self.updateEnvironment()
 
-            pos = self.position
-            if pos.distance(goal) <= self.goal_epsilon:
+            if self.goal.length() <= self.goal_epsilon:
                 self.stop()
                 return True
 
-            if self.checkObstaclesInPath(goal):
-                clockwise_point = self.findDiscontinuityPoint(goal, True)
-                counter_clockwise_point = self.findDiscontinuityPoint(
-                    goal, False)
+            if self.checkObstaclesInPath():
+                clockwise_point = self.findDiscontinuityPoint(True)
+                counter_clockwise_point = self.findDiscontinuityPoint(False)
 
                 closest_point = min(
                     clockwise_point, counter_clockwise_point, key=lambda p: self.heuristicDistance(p, goal))
@@ -352,22 +365,20 @@ class SimpleBug():
 
             time.sleep(self.time_step)
 
-    def findDiscontinuityPoint(self, goal: Vec2, clockwise: bool) -> Vec2:
+    def findDiscontinuityPoint(self, clockwise: bool) -> Vec2:
         """
         find the first point that is disconnected from the obstacle,
         in either the clockwise or counter-clockwise direction,
         """
         pos = self.position
 
-        path = goal - pos
-
         nearby_points = (
             p - pos for p in self.obstacle_points if pos.distance(p) < self.sensor_range)
 
-        points = sorted(nearby_points, key=lambda p: path.angle(p))
+        points = sorted(nearby_points, key=lambda p: self.goal.angle(p))
 
         blocking_point = min((p for p in points if checkoverlapCircle(
-            pos, goal, p + pos, self.colision_radius)), key=lambda p: p.length())
+            Vec2(0, 0), self.goal, p, self.colision_radius)), key=lambda p: p.length())
 
         # the points of the blocking obstacle, connected by their colision circles
         obstacle = [blocking_point]
@@ -385,9 +396,9 @@ class SimpleBug():
 
                 fov_coverage = getFoVCoverage(point, self.colision_radius)
                 max_angle_covered = max(
-                    max_angle_covered, path.angle(point) + fov_coverage / 2)
+                    max_angle_covered, self.goal.angle(point) + fov_coverage / 2)
 
-            elif path.angle(point) > max_angle_covered:
+            elif self.goal.angle(point) > max_angle_covered:
                 return point + pos
 
         return obstacle[-1]
