@@ -324,7 +324,7 @@ class SimpleBug():
         avoiding obstacles as necessary using the tangent bug algorithm
         """
         self.setGoal(goal)
-        while not self.motionToGoal(goal):
+        while not self.motionToGoal():
             # TODO: inplement boundary following
             self.stop()
             return
@@ -349,7 +349,7 @@ class SimpleBug():
                 return False
             time.sleep(self.time_step)
 
-    def motionToGoal(self, goal: Vec2) -> bool:
+    def motionToGoal(self) -> bool:
         """
         flies the drone in the direction of the goal,
         attempting to circumvent convex obstacles.
@@ -368,9 +368,8 @@ class SimpleBug():
                 counter_clockwise_point = self.findDiscontinuityPoint(False)
 
                 closest_point = min(
-                    clockwise_point, counter_clockwise_point, key=lambda p: self.heuristicDistance(p, goal))
-                heuristic_distance = self.heuristicDistance(
-                    closest_point, goal)
+                    clockwise_point, counter_clockwise_point, key=lambda p: self.heuristicDistance(p))
+                heuristic_distance = self.heuristicDistance(closest_point)
 
                 if last_heuristic_distance < heuristic_distance:
                     return False
@@ -411,13 +410,12 @@ class SimpleBug():
                     max_angle_covered, self.goal.angle(point) + fov_coverage / 2)
 
             elif self.goal.angle(point) > max_angle_covered:
-                return point + pos
+                return point
 
         return obstacle[-1]
 
-    def heuristicDistance(self, point: Vec2, goal: Vec2) -> float:
-        pos = self.position
-        return pos.distance(point) + point.distance(goal)
+    def heuristicDistance(self, point: Vec2) -> float:
+        return point.length() + point.distance(self.goal)
 
 
 # used in the bonux task for keeping track of points in the entire map
