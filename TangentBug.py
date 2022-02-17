@@ -206,6 +206,11 @@ class SimpleBug():
     the points detected by the drone on the way to the goal, in world frame
     """
 
+    position: Vec2
+    """
+    the current position of the drone in world frame, based on the latest measurements
+    """
+
     plane: float
     """
     the z coordinate of the plane in which the algorithm is executed
@@ -215,17 +220,18 @@ class SimpleBug():
         self.client = client
         self.plane = plane
         self.obstacle_points = set()
+        self.position = Vec2(0, 0)
 
     def stop(self):
         """
         make the drone hover in place
         """
-        pos = self.getPosition()
+        pos = self.position
         self.client.flyToPosition(pos.x, pos.y, self.plane, 0.0001)
 
     def getPosition(self) -> Vec2:
         """
-        get the current position of the drone
+        get the current position of the drone from the sensors
         """
         pos = self.client.getPose().pos
         return Vec2(pos.x_m, pos.y_m)
@@ -235,7 +241,7 @@ class SimpleBug():
         find points around the drone, detected by the drones LIDAR,
         relative to the given position and orientation on the plane
         """
-        pos = self.getPosition()
+        pos = self.position
         angle = self.client.getPose().orientation.z_rad
         point_cloud = self.client.getLidarData().points
 
@@ -262,11 +268,21 @@ class SimpleBug():
         y = round(point.y)
         self.obstacle_points.add(Vec2(x, y))
 
+    def updateEnvironment(self):
+        """
+        update the state of the drone and surrounding obstacles,
+        based on the latest data from the sensors
+        """
+        self.position = self.getPosition()
+
+        for point in self.detectObstacles():
+            self.addObstaclePoint(point)
+
     def checkObstaclesInPath(self, goal: Vec2) -> bool:
         """
         checks if there is an obstacle in the path between the drone and the goal
         """
-        pos = self.getPosition()
+        pos = self.position
         return any(checkoverlapCircle(pos, goal, p, self.colision_radius) for p in self.obstacle_points)
 
     def findPath(self, goal: Vec2):
@@ -288,10 +304,8 @@ class SimpleBug():
         self.client.flyToPosition(
             goal.x, goal.y, self.plane, self.drone_velocity)
         while True:
-            pos = self.getPosition()
-
-            for p in self.detectObstacles():
-                self.addObstaclePoint(p)
+            self.updateEnvironment()
+            pos = self.position
 
             if pos.distance(goal) <= self.goal_epsilon:
                 self.stop()
@@ -309,13 +323,12 @@ class SimpleBug():
         """
         last_heuristic_distance = math.inf
         while True:
-            pos = self.getPosition()
+            self.updateEnvironment()
+
+            pos = self.position
             if pos.distance(goal) <= self.goal_epsilon:
                 self.stop()
                 return True
-
-            for p in self.detectObstacles():
-                self.addObstaclePoint(p)
 
             if self.checkObstaclesInPath(goal):
                 clockwise_point = self.findDiscontinuityPoint(goal, True)
@@ -344,7 +357,7 @@ class SimpleBug():
         find the first point that is disconnected from the obstacle,
         in either the clockwise or counter-clockwise direction,
         """
-        pos = self.getPosition()
+        pos = self.position
 
         path = goal - pos
 
@@ -380,7 +393,7 @@ class SimpleBug():
         return obstacle[-1]
 
     def heuristicDistance(self, point: Vec2, goal: Vec2) -> float:
-        pos = self.getPosition()
+        pos = self.position
         return pos.distance(point) + point.distance(goal)
 
 
