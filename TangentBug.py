@@ -242,6 +242,14 @@ class SimpleBug():
         pos = self.position
         self.client.flyToPosition(pos.x, pos.y, self.plane, 0.0001)
 
+    def flyTo(self, point: Vec2):
+        """
+        flies the drone to a given position in body frame
+        """
+        abs_point = point + self.position
+        self.client.flyToPosition(
+            abs_point.x, abs_point.y, self.plane, self.drone_velocity)
+
     def setGoal(self, goal: Vec2):
         """
         sets a new goal point for the drone,
@@ -327,8 +335,8 @@ class SimpleBug():
         stopping if there is an obstacle in the way.
         returns whether the goal was reached
         """
-        self.client.flyToPosition(
-            goal.x, goal.y, self.plane, self.drone_velocity)
+        self.setGoal(goal)
+        self.flyTo(self.goal)
         while True:
             self.updateEnvironment()
             pos = self.position
@@ -371,8 +379,7 @@ class SimpleBug():
                     self.client.flyToPosition(
                         closest_point.x, closest_point.y, self.plane, self.drone_velocity)
             else:
-                self.client.flyToPosition(
-                    goal.x, goal.y, self.plane, self.drone_velocity)
+                self.flyTo(self.goal)
 
             time.sleep(self.time_step)
 
