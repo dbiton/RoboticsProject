@@ -387,22 +387,22 @@ class SimpleBug():
         find the first point that is disconnected from the obstacle,
         in either the clockwise or counter-clockwise direction,
         """
-        blocking_point = min((p for p in self.nearby_points if checkoverlapCircle(
-            Vec2(0, 0), self.goal, p, self.colision_radius)), key=lambda p: p.length())
 
         # the points of the blocking obstacle, connected by their colision circles
-        obstacle = [blocking_point]
+        obstacle = []
 
         # the angle from the path that is blocked by the obstacle
         # the discontinuity point is the first outside that range
-        max_angle_covered = getFoVCoverage(
-            blocking_point, self.colision_radius) / 2
+        max_angle_covered = 0
 
         directed_points = self.nearby_points if clockwise else reversed(
             self.nearby_points)
 
         for point in directed_points:
-            if any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
+            # a point is part of the obstacle if it either blocks the path
+            # or is connected to a point that does
+            if checkoverlapCircle(Vec2(0, 0), self.goal, point, self.colision_radius)\
+                    or any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
                 obstacle.append(point)
 
                 fov_coverage = getFoVCoverage(point, self.colision_radius)
