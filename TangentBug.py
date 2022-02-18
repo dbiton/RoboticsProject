@@ -409,9 +409,11 @@ class SimpleBug():
                 max_angle_covered = max(
                     max_angle_covered, self.goal.angle(point) + fov_coverage / 2)
 
+            # discontinuity points must point away from the area covered by the obstacle
             elif self.goal.angle(point) > max_angle_covered:
                 return point
 
+        # if all points are part of the obstacle, pick the one furthurest away
         return obstacle[-1]
 
     def heuristicDistance(self, point: Vec2) -> float:
