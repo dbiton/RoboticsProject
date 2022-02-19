@@ -246,9 +246,9 @@ class SimpleBug():
         """
         flies the drone to a given position in body frame
         """
-        abs_point = point + self.position
+        world_point = self.toWorldFrame(point)
         self.client.flyToPosition(
-            abs_point.x, abs_point.y, self.plane, self.drone_velocity)
+            world_point.x, world_point.y, self.plane, self.drone_velocity)
 
     def toBodyFrame(self, point: Vec2) -> Vec2:
         """
@@ -269,22 +269,20 @@ class SimpleBug():
         sets a new goal point for the drone,
         given its position in the world frame
         """
-        self.goal = goal - self.position
+        self.goal = self.toBodyFrame(goal)
 
     def getNearbyPoints(self) -> List[Vec2]:
         """
         find the points that are within range of the sensor, in body frame
         """
-        return [p - self.position for p in self.obstacle_points
+        return [self.toBodyFrame(p) for p in self.obstacle_points
                 if p.distance(self.position) < self.sensor_range]
 
     def detectObstacles(self) -> Generator[Vec2, None, None]:
         """
         find points around the drone, detected by the drones LIDAR,
-        relative to the given position and orientation on the plane
+        yielded in world frame
         """
-        pos = self.position
-        angle = self.client.getPose().orientation.z_rad
         point_cloud = self.client.getLidarData().points
 
         if len(point_cloud) < 3:
@@ -297,7 +295,7 @@ class SimpleBug():
                 # ignore points outside the flight plane
                 continue
             body_point = Vec2(point_cloud[i], point_cloud[i + 1])
-            world_point = body_point.rotate(angle) + pos
+            world_point = self.toWorldFrame(body_point)
             yield world_point
 
     def addObstaclePoint(self, point: Vec2):
@@ -318,10 +316,10 @@ class SimpleBug():
         pose = self.client.getPose()
         position = Vec2(pose.pos.x_m, pose.pos.y_m)
 
-        abs_goal = self.goal + self.position
+        world_goal = self.toWorldFrame(self.goal)
         self.position = position
         self.orientation = pose.orientation.z_rad
-        self.goal = abs_goal - self.position
+        self.goal = self.toBodyFrame(world_goal)
 
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
