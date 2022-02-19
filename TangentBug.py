@@ -338,9 +338,7 @@ class SimpleBug():
         logging.info(f"starting to look for path towards {goal}")
         self.setGoal(goal)
         while not self.motionToGoal():
-            # TODO: inplement boundary following
-            self.stop()
-            return
+            self.followBoundary()
 
     def startAndStop(self, goal: Vec2) -> bool:
         """
