@@ -212,6 +212,11 @@ class SimpleBug():
     the current position of the drone in world frame, based on the latest measurements
     """
 
+    orientation: float
+    """
+    the current orientation on the z plane of the drone in world frame, based on the latest measurements
+    """
+
     goal: Vec2
     """
     the current goal which the drone is flying towards, in body frame
@@ -227,6 +232,7 @@ class SimpleBug():
         self.plane = plane
         self.obstacle_points = set()
         self.position = Vec2(0, 0)
+        self.orientation = 0.0
         self.goal = Vec2(0, 0)
 
     def stop(self):
@@ -300,6 +306,7 @@ class SimpleBug():
 
         abs_goal = self.goal + self.position
         self.position = position
+        self.orientation = pose.orientation.z_rad
         self.goal = abs_goal - self.position
 
         for point in self.detectObstacles():
