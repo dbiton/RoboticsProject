@@ -1,8 +1,11 @@
 from DroneClient import DroneClient
 from DroneTypes import *
 from vec2 import *
+import logging
 import time
 from TangentBug import SimpleBug, runTangentBug
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 if __name__ == "__main__":
