@@ -15,10 +15,10 @@ if __name__ == "__main__":
     print(client.isConnected())
 
     time.sleep(4)
-    client.setAtPosition(-346, -700, -100)
+    client.setAtPosition(-200, -800, -100)
     time.sleep(4)
 
-    goal = Vec2(-400, -300)
+    goal = Vec2(-600, -800)
     plane = -100
 
     bug = SimpleBug(client, plane)
