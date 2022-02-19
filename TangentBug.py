@@ -250,6 +250,20 @@ class SimpleBug():
         self.client.flyToPosition(
             abs_point.x, abs_point.y, self.plane, self.drone_velocity)
 
+    def toBodyFrame(self, point: Vec2) -> Vec2:
+        """
+        given a point in world frame,
+        convert it to the equivalent point in the drones body frame
+        """
+        return (point - self.position).rotate(-self.orientation)
+
+    def toWorldFrame(self, point: Vec2) -> Vec2:
+        """
+        given a point in drones body frame,
+        convert it to the equivalent point in the world frame
+        """
+        return point.rotate(self.orientation) + self.position
+
     def setGoal(self, goal: Vec2):
         """
         sets a new goal point for the drone,
