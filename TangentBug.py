@@ -251,13 +251,6 @@ class SimpleBug():
         """
         self.goal = goal - self.position
 
-    def getPosition(self) -> Vec2:
-        """
-        get the current position of the drone from the sensors
-        """
-        pos = self.client.getPose().pos
-        return Vec2(pos.x_m, pos.y_m)
-
     def getNearbyPoints(self) -> List[Vec2]:
         """
         find the points that are within range of the sensor, in body frame
@@ -302,8 +295,11 @@ class SimpleBug():
         update the state of the drone and surrounding obstacles,
         based on the latest data from the sensors
         """
+        pose = self.client.getPose()
+        position = Vec2(pose.pos.x_m, pose.pos.y_m)
+
         abs_goal = self.goal + self.position
-        self.position = self.getPosition()
+        self.position = position
         self.goal = abs_goal - self.position
 
         for point in self.detectObstacles():
