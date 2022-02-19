@@ -2,15 +2,6 @@ from dataclasses import dataclass
 import math
 
 
-def atan2(y: float, x: float) -> float:
-    """
-    a version of atan2 returning an angle from 0 to 2*pi,
-    instead of -pi to pi.
-    makes calculations more intuitive
-    """
-    return math.atan2(y, x) % 2 * math.pi
-
-
 @dataclass(unsafe_hash=True, frozen=True)
 class Vec2:
     x: float
@@ -54,7 +45,7 @@ class Vec2:
         """
         find the angle between the two vectors, in radians
         """
-        return atan2(self.signed_area(other), self.dot(other))
+        return math.atan2(self.signed_area(other), self.dot(other))
 
     def rotate(self, angle: float) -> "Vec2":
         """
@@ -95,4 +86,4 @@ def checkoverlapCircle(a: Vec2, b: Vec2, o: Vec2, radius: float) -> bool:
     #
     # if the points are on oposite sides, the angle between them would be pi
     # and 0 if they are on the same side
-    return (b - p).angle(a - p) > math.pi / 2
+    return abs((b - p).angle(a - p)) > math.pi / 2
