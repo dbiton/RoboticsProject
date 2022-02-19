@@ -443,6 +443,61 @@ class SimpleBug():
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
 
+    def followBoundary(self):
+        """
+        follow the boundary of the obstacle currently blocking the path,
+        untill the goal is once again reachable
+        """
+
+        # keep track of the point followed in the previous iteration,
+        # to find the obstacle being followed.
+        #
+        # since the position changes bewteen iterations,
+        # keep it in world frame
+        prev_followed_point = self.toWorldFrame(self.goal)
+
+        followed_distance = math.inf
+
+        while True:
+            self.updateEnvironment()
+
+            # for simplicity's sake, the reachable distance is computed,
+            # as though no point outside the drone is visable.
+            #
+            # this causes the drone to stop following the boundary later than is possible,
+            # but is otherwise still correct (for a non-zero width obstacle)
+            reachable_distance = self.goal.length()
+
+            path = self.toBodyFrame(prev_followed_point)
+
+            # ensure the path is as long as the sensor range,
+            # to include all nearby_points that are on the obstacle
+            normalized_path = path * (self.sensor_range / path.length())
+
+            followed_obstacle = self.getBlockingObstacle(normalized_path)
+
+            if len(followed_obstacle) == 0:
+                # if the followed obstacle is unreachable,
+                # try motion-to-goal again
+                return
+
+            followed_point = min(followed_obstacle, key=lambda p: p.length())
+            followed_distance = min(
+                followed_distance, followed_point.distance(self.goal))
+
+            if followed_distance > reachable_distance:
+                # end boundary following behavior, now that the goal is in reach
+                return
+
+            tangent = followed_point.perpendicular()
+            normalized_tangent = tangent * \
+                (self.sensor_range / tangent.length())
+            self.flyTo(normalized_tangent)
+
+            prev_followed_point = self.toWorldFrame(followed_point)
+
+            time.sleep(self.time_step)
+
 
 # used in the bonux task for keeping track of points in the entire map
 class ObstacleMap:
