@@ -364,11 +364,10 @@ class SimpleBug():
                 return True
 
             if self.checkObstaclesInPath():
-                clockwise_point = self.findDiscontinuityPoint(True)
-                counter_clockwise_point = self.findDiscontinuityPoint(False)
+                discontinuity_points = self.findDiscontinuityPoints()
 
-                closest_point = min(
-                    clockwise_point, counter_clockwise_point, key=lambda p: self.heuristicDistance(p))
+                closest_point = min(discontinuity_points,
+                                    key=lambda p: self.heuristicDistance(p))
                 heuristic_distance = self.heuristicDistance(closest_point)
 
                 if last_heuristic_distance < heuristic_distance:
@@ -382,39 +381,52 @@ class SimpleBug():
 
             time.sleep(self.time_step)
 
-    def findDiscontinuityPoint(self, clockwise: bool) -> Vec2:
+    def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
         """
-        find the first point that is disconnected from the obstacle,
-        in either the clockwise or counter-clockwise direction,
+        finds all of the points on the obstacle blocking the path,
+        sorted by their angle relative to said path
         """
 
         # the points of the blocking obstacle, connected by their colision circles
         obstacle = []
 
-        # the angle from the path that is blocked by the obstacle
-        # the discontinuity point is the first outside that range
-        max_angle_covered = 0
+        counter_clockwise_points = []
+        clockwise_points = []
 
-        directed_points = self.nearby_points if clockwise else reversed(
-            self.nearby_points)
+        nearby_points = self.getNearbyPoints()
+        nearby_points.sort(key=lambda p: path.angle(p))
 
-        for point in directed_points:
-            # a point is part of the obstacle if it either blocks the path
-            # or is connected to a point that does
-            if checkoverlapCircle(Vec2(0, 0), self.goal, point, self.colision_radius)\
-                    or any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
+        # since a point clockwise to the goal can be connected to a point counter clockwise,
+        # all points directly on the path have to be found before deciding whether the rest are connected
+        for point in nearby_points:
+            if checkoverlapCircle(Vec2(0, 0), path, point, self.colision_radius):
+                obstacle.append(point)
+            elif path.angle(point) > 0:
+                counter_clockwise_points.append(point)
+            else:
+                clockwise_points.append(point)
+
+        # find points connected to the obstacle from either end, while maintaining the order,
+        # so that the first and last points in the obstacle are the discontinuity points
+        for point in counter_clockwise_points:
+            if any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
                 obstacle.append(point)
 
-                fov_coverage = getFoVCoverage(point, self.colision_radius)
-                max_angle_covered = max(
-                    max_angle_covered, self.goal.angle(point) + fov_coverage / 2)
+        # reverse the obstacle so that points would be appended in reverse order
+        obstacle.reverse()
+        for point in reversed(clockwise_points):
+            if any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
+                obstacle.append(point)
+        return obstacle
 
-            # discontinuity points must point away from the area covered by the obstacle
-            elif self.goal.angle(point) > max_angle_covered:
-                return point
+    def findDiscontinuityPoints(self) -> Tuple[Vec2, Vec2]:
+        """
+        find the first and last points that are connected to the obstacle,
+        in both the clockwise or counter-clockwise direction,
+        """
 
-        # if all points are part of the obstacle, pick the one furthurest away
-        return obstacle[-1]
+        obstacle = self.getBlockingObstacle(self.goal)
+        return obstacle[0], obstacle[-1]
 
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
