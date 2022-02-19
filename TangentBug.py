@@ -207,12 +207,6 @@ class SimpleBug():
     the points detected by the drone on the way to the goal, in world frame
     """
 
-    nearby_points: List[Vec2]
-    """
-    the points that are within range of the sensor, in body frame
-    sorted by their angle relative to the path to the goal
-    """
-
     position: Vec2
     """
     the current position of the drone in world frame, based on the latest measurements
@@ -232,7 +226,6 @@ class SimpleBug():
         self.client = client
         self.plane = plane
         self.obstacle_points = set()
-        self.nearby_points = []
         self.position = Vec2(0, 0)
         self.goal = Vec2(0, 0)
 
@@ -264,6 +257,13 @@ class SimpleBug():
         """
         pos = self.client.getPose().pos
         return Vec2(pos.x_m, pos.y_m)
+
+    def getNearbyPoints(self) -> List[Vec2]:
+        """
+        find the points that are within range of the sensor, in body frame
+        """
+        return [p - self.position for p in self.obstacle_points
+                if p.distance(self.position) < self.sensor_range]
 
     def detectObstacles(self) -> Generator[Vec2, None, None]:
         """
@@ -309,15 +309,11 @@ class SimpleBug():
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
 
-        self.nearby_points = sorted((p - self.position for p in self.obstacle_points
-                                     if p.distance(self.position) < self.sensor_range),
-                                    key=lambda p: self.goal.angle(p))
-
     def checkObstaclesInPath(self) -> bool:
         """
         checks if there is an obstacle in the path between the drone and the goal
         """
-        return any(checkoverlapCircle(Vec2(0, 0), self.goal, p, self.colision_radius) for p in self.nearby_points)
+        return any(checkoverlapCircle(Vec2(0, 0), self.goal, p, self.colision_radius) for p in self.getNearbyPoints())
 
     def findPath(self, goal: Vec2):
         """
