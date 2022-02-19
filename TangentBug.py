@@ -335,6 +335,7 @@ class SimpleBug():
         flies the drone towards the goal,
         avoiding obstacles as necessary using the tangent bug algorithm
         """
+        logging.info(f"starting to look for path towards {goal}")
         self.setGoal(goal)
         while not self.motionToGoal():
             # TODO: inplement boundary following
@@ -367,12 +368,14 @@ class SimpleBug():
         attempting to circumvent convex obstacles.
         returns whether the goal was reached
         """
+        logging.info("starting to move towards goal")
         last_heuristic_distance = math.inf
         while True:
             self.updateEnvironment()
 
             if self.goal.length() <= self.goal_epsilon:
                 self.stop()
+                logging.info("arrived at goal")
                 return True
 
             if self.checkObstaclesInPath():
@@ -457,6 +460,7 @@ class SimpleBug():
         prev_followed_point = self.toWorldFrame(self.goal)
 
         followed_distance = math.inf
+        logging.info("starting to follow boundary")
 
         while True:
             self.updateEnvironment()
