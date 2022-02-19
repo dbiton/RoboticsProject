@@ -31,6 +31,9 @@ class Vec2:
     def __rmul__(self, other: float) -> "Vec2":
         return Vec2(self.x * other, self.y * other)
 
+    def __neg__(self) -> "Vec2":
+        return Vec2(-self.x, -self.y)
+
     def dot(self, other: "Vec2") -> float:
         return self.x * other.x + self.y * other.y
 
