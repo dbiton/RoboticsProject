@@ -65,6 +65,17 @@ class Vec2:
         y = self.x * self.y * other.x + self.y * self.y * other.y
         return Vec2(x, y) * (1 / self.dot(self))
 
+    def perpendicular(self) -> "Vec2":
+        """
+        returns the vector perpendicular to this one,
+        which most closely matches the direction of the X axis
+        """
+        perp = Vec2(self.y, -self.x)
+        if perp.x >= 0:
+            return perp
+        else:
+            return -perp
+
 
 def checkoverlapCircle(a: Vec2, b: Vec2, o: Vec2, radius: float) -> bool:
     """
