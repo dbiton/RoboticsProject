@@ -387,8 +387,7 @@ class SimpleBug():
                     return False
                 else:
                     last_heuristic_distance = heuristic_distance
-                    self.client.flyToPosition(
-                        closest_point.x, closest_point.y, self.plane, self.drone_velocity)
+                    self.flyTo(closest_point)
             else:
                 self.flyTo(self.goal)
 
