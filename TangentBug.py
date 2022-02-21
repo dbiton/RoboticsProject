@@ -2,7 +2,7 @@ from operator import itemgetter
 import math
 import logging
 import time
-from typing import Generator, List, Set, Tuple
+from typing import Generator, List, Optional, Set, Tuple
 
 from DroneClient import *
 from DroneTypes import *
@@ -239,16 +239,16 @@ class SimpleBug():
         """
         make the drone hover in place
         """
-        pos = self.position
-        self.client.flyToPosition(pos.x, pos.y, self.plane, 0.0001)
+        self.flyTo(Vec2(0, 0), velocity=0.0001)
 
-    def flyTo(self, point: Vec2):
+    def flyTo(self, point: Vec2, velocity: Optional[float] = None):
         """
         flies the drone to a given position in body frame
         """
+        drone_velocity = self.drone_velocity if velocity is None else velocity
         world_point = self.toWorldFrame(point)
         self.client.flyToPosition(
-            world_point.x, world_point.y, self.plane, self.drone_velocity)
+            world_point.x, world_point.y, self.plane, drone_velocity)
 
     def toBodyFrame(self, point: Vec2) -> Vec2:
         """
