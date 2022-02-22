@@ -178,8 +178,7 @@ class SimpleBug():
     can be lower (for example while turing)
     """
 
-    # matches the maximum number of points the sensors can find in a second
-    time_step: float = 1 / 25
+    time_step: float = 1 / 50
     """
     the interval, in seconds, between each iteration of the algorithm,
     to ensure the busy loop isn't doing redundant computation
