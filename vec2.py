@@ -43,7 +43,7 @@ class Vec2:
 
     def angle(self, other: "Vec2") -> float:
         """
-        find the angle between the two vectors, in radians
+        find the angle from this vector to the other, in radians
         """
         return math.atan2(self.signed_area(other), self.dot(other))
 
