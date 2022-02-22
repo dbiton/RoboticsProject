@@ -196,6 +196,11 @@ class SimpleBug():
     while a point outside that range, it is ignored by the path finding algorithm.
     """
 
+    boundary_distance: float = 4
+    """
+    the prefered distance the drone should be from the boundary while following it
+    """
+
     client: DroneClient
     """
     the client with which the the algorithm communicates with the drone
@@ -495,9 +500,14 @@ class SimpleBug():
                 return
 
             tangent = followed_point.perpendicular()
-            normalized_tangent = tangent * \
-                (self.sensor_range / tangent.length())
-            self.flyTo(normalized_tangent)
+            # maintain a fixed distance from the followed obstacle,
+            # to both avoid hitting hit by being too close,
+            # or hitting other obstacles by flying too far away
+            distance_offset = followed_point.length() - self.boundary_distance
+            course_correction = followed_point * \
+                (distance_offset / followed_point.length())
+            flight_direction = tangent + course_correction
+            self.flyTo(flight_direction, velocity=self.drone_velocity / 2)
 
             prev_followed_point = self.toWorldFrame(followed_point)
 
