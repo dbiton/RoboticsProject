@@ -462,6 +462,11 @@ class SimpleBug():
         while True:
             self.updateEnvironment()
 
+            if self.goal.length() <= self.goal_epsilon:
+                self.stop()
+                logging.info(f"arrived at goal")
+                return True
+
             # for simplicity's sake, the reachable distance is computed,
             # as though no point outside the drone is visable.
             #
