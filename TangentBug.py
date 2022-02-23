@@ -462,12 +462,12 @@ class SimpleBug():
         yields True once the goal becomes is reachable, and False otherwise
         """
 
-        # keep track of the point followed in the previous iteration,
-        # to find the obstacle being followed.
+        # keep track of the points on the obstacle being followed.
         #
         # since the position changes bewteen iterations,
-        # keep it in world frame
-        prev_followed_point = self.toWorldFrame(self.goal)
+        # keep them in world frame
+        prev_followed_obstacle = list(self.toWorldFrame(p)
+                                      for p in self.getBlockingObstacle(self.goal))
 
         followed_distance = math.inf
 
@@ -480,10 +480,10 @@ class SimpleBug():
             # but is otherwise still correct (for a non-zero width obstacle)
             reachable_distance = self.goal.length()
 
-            old_obstacle_direction = self.toBodyFrame(prev_followed_point)
-
-            followed_obstacle = self.getBlockingObstacle(
-                old_obstacle_direction)
+            followed_obstacle = self.findConnectedPoints(self.toBodyFrame(p)
+                                                         for p in prev_followed_obstacle)
+            prev_followed_obstacle = list(
+                self.toWorldFrame(p) for p in followed_obstacle)
 
             if len(followed_obstacle) == 0:
                 # if the followed obstacle is unreachable,
@@ -517,9 +517,34 @@ class SimpleBug():
 
             self.flyTo(flight_direction, velocity=self.drone_velocity / 2)
 
-            prev_followed_point = self.toWorldFrame(followed_point)
-
             yield False
+
+    def findConnectedPoints(self, points: Iterable[Vec2]) -> Set[Vec2]:
+        # round the vectors to use avoid including the same point twice,
+        # due to floating point precision loss
+        connected = set(p.round() for p in points)
+        nearby_points = set(p.round() for p in self.nearby_points)
+
+        nearby_connected = connected.intersection(nearby_points)
+        remaining_points = nearby_points.difference(nearby_connected)
+
+        # establish connectivity between points,
+        # by iterativly adding points that are directly connected,
+        # untill all connected points are in the set
+        while True:
+            addition = set()
+
+            for point in remaining_points:
+                if any(self.checkPointsConnected(p, point) for p in nearby_connected):
+                    addition.add(point)
+
+            if len(addition) == 0:
+                break
+            else:
+                nearby_connected.update(addition)
+                remaining_points.difference_update(addition)
+
+        return nearby_connected
 
 
 class ObstacleMap:  # used in the bonux task for keeping track of points in the entire map
