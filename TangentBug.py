@@ -196,7 +196,7 @@ class SimpleBug():
     while a point outside that range, it is ignored by the path finding algorithm.
     """
 
-    boundary_distance: float = 4
+    boundary_distance: float = 6
     """
     the prefered distance the drone should be from the boundary while following it
     """
