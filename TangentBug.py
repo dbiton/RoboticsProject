@@ -335,6 +335,13 @@ class SimpleBug():
         """
         return any(checkoverlapCircle(Vec2(0, 0), self.goal, p, self.colision_radius) for p in self.nearby_points)
 
+    def checkPointsConnected(self, p1: Vec2, p2: Vec2) -> bool:
+        """
+        returns whether the colision circles of the two given points intersect,
+        indicating that they are conneced.
+        """
+        return p1.distance(p2) <= 2 * self.colision_radius
+
     def findPath(self, goal: Vec2):
         """
         flies the drone towards the goal,
@@ -429,13 +436,13 @@ class SimpleBug():
         # find points connected to the obstacle from either end, while maintaining the order,
         # so that the first and last points in the obstacle are the discontinuity points
         for point in counter_clockwise_points:
-            if any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
+            if any(self.checkPointsConnected(point, p) for p in obstacle):
                 obstacle.append(point)
 
         # reverse the obstacle so that points would be appended in reverse order
         obstacle.reverse()
         for point in reversed(clockwise_points):
-            if any(point.distance(p) <= 2 * self.colision_radius for p in obstacle):
+            if any(self.checkPointsConnected(point, p) for p in obstacle):
                 obstacle.append(point)
         return obstacle
 
