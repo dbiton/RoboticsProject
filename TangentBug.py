@@ -339,10 +339,37 @@ class SimpleBug():
         flies the drone towards the goal,
         avoiding obstacles as necessary using the tangent bug algorithm
         """
-        logging.info(f"starting to look for path towards {goal}")
         self.setGoal(goal)
-        while not self.motionToGoal():
-            self.followBoundary()
+        self.updateEnvironment()
+
+        following_boundary = False
+
+        boundary_following_planner = self.followBoundary()
+        motion_to_goal_planner = self.motionToGoal()
+
+        while True:
+            self.updateEnvironment()
+
+            if self.goal.length() <= self.goal_epsilon:
+                # arrived at the destination
+                self.stop()
+                return
+
+            if following_boundary:
+                if next(boundary_following_planner):
+                    # motion to goal can make progress now,
+                    # reset boundary following and start the motion to goal
+                    boundary_following_planner = self.followBoundary()
+                    following_boundary = False
+
+            else:
+                if not next(motion_to_goal_planner):
+                    # motion to goal cant make progress,
+                    # reset iy and start following the boundary
+                    motion_to_goal_planner = self.motionToGoal()
+                    following_boundary = True
+
+            time.sleep(self.time_step)
 
     def startAndStop(self, goal: Vec2) -> bool:
         """
@@ -364,22 +391,13 @@ class SimpleBug():
                 return False
             time.sleep(self.time_step)
 
-    def motionToGoal(self) -> bool:
+    def motionToGoal(self) -> Generator[bool, None, None]:
         """
-        flies the drone in the direction of the goal,
-        attempting to circumvent convex obstacles.
-        returns whether the goal was reached
+        flies the drone in the direction of the goal, if possible
+        yields True so long as progress can be made with this path planner
         """
-        logging.info("starting to move towards goal")
         last_heuristic_distance = math.inf
         while True:
-            self.updateEnvironment()
-
-            if self.goal.length() <= self.goal_epsilon:
-                self.stop()
-                logging.info("arrived at goal")
-                return True
-
             if self.checkObstaclesInPath():
                 discontinuity_points = self.findDiscontinuityPoints()
 
@@ -388,14 +406,16 @@ class SimpleBug():
                 heuristic_distance = self.heuristicDistance(closest_point)
 
                 if last_heuristic_distance < heuristic_distance:
-                    return False
+                    yield False
+
                 else:
                     last_heuristic_distance = heuristic_distance
                     self.flyTo(closest_point)
+
             else:
                 self.flyTo(self.goal)
 
-            time.sleep(self.time_step)
+            yield True
 
     def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
         """
@@ -447,10 +467,10 @@ class SimpleBug():
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
 
-    def followBoundary(self):
+    def followBoundary(self) -> Generator[bool, None, None]:
         """
         follow the boundary of the obstacle currently blocking the path,
-        untill the goal is once again reachable
+        yields True once the goal becomes is reachable, and False otherwise
         """
 
         # keep track of the point followed in the previous iteration,
@@ -461,15 +481,8 @@ class SimpleBug():
         prev_followed_point = self.toWorldFrame(self.goal)
 
         followed_distance = math.inf
-        logging.info("starting to follow boundary")
 
         while True:
-            self.updateEnvironment()
-
-            if self.goal.length() <= self.goal_epsilon:
-                self.stop()
-                logging.info(f"arrived at goal")
-                return True
 
             # for simplicity's sake, the reachable distance is computed,
             # as though no point outside the drone is visable.
@@ -478,40 +491,41 @@ class SimpleBug():
             # but is otherwise still correct (for a non-zero width obstacle)
             reachable_distance = self.goal.length()
 
-            path = self.toBodyFrame(prev_followed_point)
+            old_obstacle_direction = self.toBodyFrame(prev_followed_point)
 
-            # ensure the path is as long as the sensor range,
-            # to include all nearby_points that are on the obstacle
-            normalized_path = path * (self.sensor_range / path.length())
-
-            followed_obstacle = self.getBlockingObstacle(normalized_path)
+            followed_obstacle = self.getBlockingObstacle(
+                old_obstacle_direction)
 
             if len(followed_obstacle) == 0:
                 # if the followed obstacle is unreachable,
                 # try motion-to-goal again
-                return
+                yield True
 
             followed_point = min(followed_obstacle, key=lambda p: p.length())
+
             followed_distance = min(
                 followed_distance, followed_point.distance(self.goal))
 
             if followed_distance > reachable_distance:
                 # end boundary following behavior, now that the goal is in reach
-                return
+                yield True
 
             tangent = followed_point.perpendicular()
             # maintain a fixed distance from the followed obstacle,
             # to both avoid hitting hit by being too close,
             # or hitting other obstacles by flying too far away
             distance_offset = followed_point.length() - self.boundary_distance
+
             course_correction = followed_point * \
                 (distance_offset / followed_point.length())
+
             flight_direction = tangent + course_correction
+
             self.flyTo(flight_direction, velocity=self.drone_velocity / 2)
 
             prev_followed_point = self.toWorldFrame(followed_point)
 
-            time.sleep(self.time_step)
+            yield False
 
 
 # used in the bonux task for keeping track of points in the entire map
