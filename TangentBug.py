@@ -533,8 +533,7 @@ class SimpleBug():
             yield False
 
 
-# used in the bonux task for keeping track of points in the entire map
-class ObstacleMap:
+class ObstacleMap:  # used in the bonux task for keeping track of points in the entire map
     """
     a map describing the obstacles observed by the drone in its path
     """
