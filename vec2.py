@@ -25,6 +25,12 @@ class Vec2:
     def __neg__(self) -> "Vec2":
         return Vec2(-self.x, -self.y)
 
+    def round(self) -> "Vec2":
+        """
+        return the same vector, with its coordinates rounded to the nearest integer
+        """
+        return Vec2(round(self.x), round(self.y))
+
     def dot(self, other: "Vec2") -> float:
         return self.x * other.x + self.y * other.y
 

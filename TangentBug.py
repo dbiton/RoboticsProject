@@ -306,9 +306,7 @@ class SimpleBug():
         """
         # round up the coordinates of the point
         # to avoid storing redundant points
-        x = round(point.x)
-        y = round(point.y)
-        self.obstacle_points.add(Vec2(x, y))
+        self.obstacle_points.add(point.round())
 
     def updateEnvironment(self):
         """
