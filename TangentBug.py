@@ -511,6 +511,11 @@ class SimpleBug():
                 yield True
 
             tangent = followed_point.perpendicular()
+
+            # ensure that the direction taken by the drone is consistant across iterations
+            tangent = tangent if abs(Vec2(1, 0).angle(
+                tangent) <= math.pi / 2) else -tangent
+
             # maintain a fixed distance from the followed obstacle,
             # to both avoid hitting hit by being too close,
             # or hitting other obstacles by flying too far away
