@@ -376,26 +376,6 @@ class SimpleBug():
 
             time.sleep(self.time_step)
 
-    def startAndStop(self, goal: Vec2) -> bool:
-        """
-        flies the drone in the direction of the goal,
-        stopping if there is an obstacle in the way.
-        returns whether the goal was reached
-        """
-        self.setGoal(goal)
-        self.flyTo(self.goal)
-        while True:
-            self.updateEnvironment()
-            pos = self.position
-
-            if pos.distance(goal) <= self.goal_epsilon:
-                self.stop()
-                return True
-            elif self.checkObstaclesInPath():
-                self.stop()
-                return False
-            time.sleep(self.time_step)
-
     def motionToGoal(self) -> Generator[bool, None, None]:
         """
         flies the drone in the direction of the goal, if possible
