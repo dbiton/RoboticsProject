@@ -211,6 +211,11 @@ class SimpleBug():
     the points detected by the drone on the way to the goal, in world frame
     """
 
+    nearby_points: List[Vec2]
+    """
+    the obstacle points within the range of the drones sensor, in body frame
+    """
+
     position: Vec2
     """
     the current position of the drone in world frame, based on the latest measurements
@@ -275,13 +280,6 @@ class SimpleBug():
         """
         self.goal = self.toBodyFrame(goal)
 
-    def getNearbyPoints(self) -> List[Vec2]:
-        """
-        find the points that are within range of the sensor, in body frame
-        """
-        return [self.toBodyFrame(p) for p in self.obstacle_points
-                if p.distance(self.position) < self.sensor_range]
-
     def detectObstacles(self) -> Generator[Vec2, None, None]:
         """
         find points around the drone, detected by the drones LIDAR,
@@ -328,11 +326,14 @@ class SimpleBug():
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
 
+        self.nearby_points = [self.toBodyFrame(p) for p in self.obstacle_points
+                              if p.distance(self.position) < self.sensor_range]
+
     def checkObstaclesInPath(self) -> bool:
         """
         checks if there is an obstacle in the path between the drone and the goal
         """
-        return any(checkoverlapCircle(Vec2(0, 0), self.goal, p, self.colision_radius) for p in self.getNearbyPoints())
+        return any(checkoverlapCircle(Vec2(0, 0), self.goal, p, self.colision_radius) for p in self.nearby_points)
 
     def findPath(self, goal: Vec2):
         """
@@ -429,12 +430,11 @@ class SimpleBug():
         counter_clockwise_points = []
         clockwise_points = []
 
-        nearby_points = self.getNearbyPoints()
-        nearby_points.sort(key=lambda p: path.angle(p))
+        self.nearby_points.sort(key=lambda p: path.angle(p))
 
         # since a point clockwise to the goal can be connected to a point counter clockwise,
         # all points directly on the path have to be found before deciding whether the rest are connected
-        for point in nearby_points:
+        for point in self.nearby_points:
             if checkoverlapCircle(Vec2(0, 0), path, point, self.colision_radius):
                 obstacle.append(point)
             elif path.angle(point) > 0:
