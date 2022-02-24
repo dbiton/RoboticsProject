@@ -395,23 +395,26 @@ class SimpleBug():
             if following_boundary:
                 if next(boundary_following_planner):
                     # motion to goal can make progress now,
-                    # reset boundary following and start the motion to goal
-                    boundary_following_planner = self.followBoundary()
+                    # reset motion to goal and start it
+                    motion_to_goal_planner = self.motionToGoal()
                     following_boundary = False
 
             else:
-                if not next(motion_to_goal_planner):
+                point = next(motion_to_goal_planner)
+                if point is not None:
+                    direction = point.rotate(-self.orientation).normalize()
                     # motion to goal cant make progress,
-                    # reset iy and start following the boundary
-                    motion_to_goal_planner = self.motionToGoal()
+                    # reset following the boundary and start it
+                    boundary_following_planner = self.followBoundary(direction)
                     following_boundary = True
 
             time.sleep(self.time_step)
 
-    def motionToGoal(self) -> Generator[bool, None, None]:
+    def motionToGoal(self) -> Generator[Optional[Vec2], None, None]:
         """
         flies the drone in the direction of the goal, if possible
-        yields True so long as progress can be made with this path planner
+        yields the next point it would have chosen to fly towards,
+        in body frame, once no progress can be made with this path planner
         """
         last_heuristic_distance = math.inf
         while True:
@@ -423,7 +426,7 @@ class SimpleBug():
                 heuristic_distance = self.heuristicDistance(closest_point)
 
                 if last_heuristic_distance < heuristic_distance:
-                    yield False
+                    yield closest_point
 
                 else:
                     last_heuristic_distance = heuristic_distance
@@ -432,7 +435,7 @@ class SimpleBug():
             else:
                 self.flyTo(self.goal)
 
-            yield True
+            yield
 
     def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
         """
@@ -478,15 +481,32 @@ class SimpleBug():
         """
 
         obstacle = self.getBlockingObstacle(self.goal)
-        return obstacle[0], obstacle[-1]
+
+        # rotate points to avoid coliding on the obstacle,
+        # when no furthur discontinuity points can be found
+        #
+        # normalize to the boundary distance,
+        # to avoid attempting to fly too close to current position,
+        # which at high speed wont work
+        cw = obstacle[-1]
+        norm_cw = cw.rotate(-self.avoidance_angle).normalize() * \
+            self.boundary_distance
+        ccw = obstacle[0]
+        norm_ccw = ccw.rotate(
+            self.avoidance_angle).normalize() * self.boundary_distance
+
+        return norm_cw, norm_ccw
 
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
 
-    def followBoundary(self) -> Generator[bool, None, None]:
+    def followBoundary(self, path_hint: Optional[Vec2] = None) -> Generator[bool, None, None]:
         """
         follow the boundary of the obstacle currently blocking the path,
         yields True once the goal becomes is reachable, and False otherwise
+
+        uses the path hint, if available, to choose a direction to follow,
+        that matches the given direction vector in world frame
         """
 
         # keep track of the points on the obstacle being followed.
@@ -497,6 +517,10 @@ class SimpleBug():
                                       for p in self.getBlockingObstacle(self.goal))
 
         followed_distance = math.inf
+
+        # if no path hint is available, choose the direction based on the path to the goal
+        if path_hint is None:
+            path_hint = self.goal.rotate(self.orientation)
 
         while True:
 
@@ -529,8 +553,9 @@ class SimpleBug():
             tangent = followed_point.perpendicular()
 
             # ensure that the direction taken by the drone is consistant across iterations
-            tangent = tangent if abs(Vec2(1, 0).angle(
-                tangent) <= math.pi / 2) else -tangent
+            tangent = tangent if abs(path_hint.rotate(
+                self.orientation).angle(tangent)) <= math.pi / 2 else -tangent
+            path_hint = tangent.rotate(-self.orientation).normalize()
 
             # maintain a fixed distance from the followed obstacle,
             # to both avoid hitting hit by being too close,
