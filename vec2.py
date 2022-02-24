@@ -22,6 +22,9 @@ class Vec2:
     def __rmul__(self, other: float) -> "Vec2":
         return Vec2(self.x * other, self.y * other)
 
+    def __truediv__(self, other: float) -> "Vec2":
+        return Vec2(self.x / other, self.y / other)
+
     def __neg__(self) -> "Vec2":
         return Vec2(-self.x, -self.y)
 
@@ -69,7 +72,7 @@ class Vec2:
         # multiplication by the othogonal projection matrix (v*v^T)/(v^T*v)
         x = self.x * self.x * other.x + self.x * self.y * other.y
         y = self.x * self.y * other.x + self.y * self.y * other.y
-        return Vec2(x, y) * (1 / self.dot(self))
+        return Vec2(x, y) / self.dot(self)
 
     def perpendicular(self) -> "Vec2":
         """
