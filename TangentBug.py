@@ -308,9 +308,12 @@ class SimpleBug():
             if abs(plane_delta) >= self.plane_epsilon:
                 # ignore points outside the flight plane
                 continue
-            body_point = Vec2(point_cloud[i], point_cloud[i + 1])
-            world_point = self.toWorldFrame(body_point)
-            yield world_point
+            for a in range(-1, 1):
+                for b in range(-1, 1):
+                    body_point = Vec2(
+                        point_cloud[i] + a, point_cloud[i + 1] + b)
+                    world_point = self.toWorldFrame(body_point)
+                    yield world_point
 
     def addObstaclePoint(self, point: Vec2):
         """
