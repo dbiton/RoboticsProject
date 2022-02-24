@@ -160,7 +160,7 @@ class TangentBug:
 # smaller steps towards tangent-bug
 
 class SimpleBug():
-    plane_epsilon: float = 1
+    plane_epsilon: float = 5
     """
     a far a point can be away from the drone in the z axis,
     # for it to count as being on the same plane
