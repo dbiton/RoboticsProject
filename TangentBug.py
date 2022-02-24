@@ -562,10 +562,14 @@ class SimpleBug():
             # or hitting other obstacles by flying too far away
             distance_offset = followed_point.length() - self.boundary_distance
 
-            course_correction = followed_point * \
-                (distance_offset / followed_point.length())
+            course_correction = followed_point.normalize() * distance_offset
 
-            flight_direction = tangent + course_correction
+            # if the difference between the desired distance and the actual distance is too big,
+            # ignore the tangent and focus on cource correcting,
+            # to avoid taking wide turns or rotating around a point on the boundary
+            flight_direction = tangent + \
+                course_correction if abs(
+                    distance_offset) < self.colision_radius else course_correction
 
             self.flyTo(flight_direction, velocity=self.drone_velocity / 2)
 
