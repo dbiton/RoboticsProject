@@ -81,6 +81,13 @@ class Vec2:
         """
         return Vec2(-self.y, self.x)
 
+    def normalize(self) -> "Vec2":
+        length = self.length()
+        if length < 0.0001:
+            # avoid dividing by zero
+            return Vec2(0, 0)
+        return self / length
+
 
 def checkoverlapCircle(a: Vec2, b: Vec2, o: Vec2, radius: float) -> bool:
     """
