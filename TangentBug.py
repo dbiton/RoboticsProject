@@ -184,6 +184,12 @@ class SimpleBug():
     to ensure the busy loop isn't doing redundant computation
     """
 
+    memory_duration: float = 2
+    """
+    the time in seconds, that it takes for the drone to forget about a point,
+    that it hasn't sensed since.
+    """
+
     goal_epsilon: float = 3
     """
     how far the current position of the drone can be from the goal,
@@ -196,9 +202,14 @@ class SimpleBug():
     while a point outside that range, it is ignored by the path finding algorithm.
     """
 
-    boundary_distance: float = 6
+    boundary_distance: float = 5
     """
     the prefered distance the drone should be from the boundary while following it
+    """
+
+    avoidance_angle: float = math.pi / 8
+    """
+    the angle which the drones direction is rotated by to avoid flying towards obstacles
     """
 
     client: DroneClient
@@ -206,9 +217,10 @@ class SimpleBug():
     the client with which the the algorithm communicates with the drone
     """
 
-    obstacle_points: Set[Vec2]
+    obstacle_points: Dict[Vec2, int]
     """
-    the points detected by the drone on the way to the goal, in world frame
+    the points detected by the drone on the way to the goal, in world frame,
+    with the number of iterations since that point was last spotted
     """
 
     nearby_points: List[Vec2]
@@ -239,7 +251,7 @@ class SimpleBug():
     def __init__(self, client: DroneClient, plane: float) -> None:
         self.client = client
         self.plane = plane
-        self.obstacle_points = set()
+        self.obstacle_points = {}
         self.position = Vec2(0, 0)
         self.orientation = 0.0
         self.goal = Vec2(0, 0)
@@ -306,7 +318,7 @@ class SimpleBug():
         """
         # round up the coordinates of the point
         # to avoid storing redundant points
-        self.obstacle_points.add(point.round())
+        self.obstacle_points[point.round()] = 0
 
     def updateEnvironment(self):
         """
@@ -324,7 +336,22 @@ class SimpleBug():
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
 
-        self.nearby_points = [self.toBodyFrame(p) for p in self.obstacle_points
+        # remove points that haven't been seen for a while
+        # used to remove points that are either not on the current plane,
+        # or were produced by floating point imprecision,
+        # and avoid iterating over the entire map just to find the nearby points
+        forgotten = []
+        for point, iterations in self.obstacle_points.items():
+            if iterations > self.memory_duration / self.time_step:
+                forgotten.append(point)
+            else:
+                # the point stays for another iteration
+                self.obstacle_points[point] += 1
+
+        for p in forgotten:
+            self.obstacle_points.pop(p, None)
+
+        self.nearby_points = [self.toBodyFrame(p) for p in self.obstacle_points.keys()
                               if p.distance(self.position) < self.sensor_range]
 
     def checkObstaclesInPath(self) -> bool:
