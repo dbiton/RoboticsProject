@@ -338,6 +338,37 @@ class SimpleBug():
         # to avoid storing redundant points
         self.obstacle_points[point.round()] = 0
 
+        # add points in between points connected to this one,
+        # to get smoother changes in the geometry
+        addition = []
+        for other in self.obstacle_points:
+            if point.distance(other) < 2 * self.colision_radius:
+                addition.extend(self.getPointsOnSegment(point, other))
+
+        for p in addition:
+            self.obstacle_points[p.round()] = 0
+
+    def forgetOldPoints(self):
+        """
+        remove points previously detected by the drone,
+        that haven't been seen for a while
+
+        used to remove points that are either not on the current plane,
+        or were produced by floating point imprecision,
+        and avoid iterating over the entire map just to find the nearby points
+        """
+
+        forgotten = []
+        for point, iterations in self.obstacle_points.items():
+            if iterations > self.memory_duration / self.time_step:
+                forgotten.append(point)
+            else:
+                # the point stays for another iteration
+                self.obstacle_points[point] += 1
+
+        for p in forgotten:
+            self.obstacle_points.pop(p, None)
+
     def updateEnvironment(self):
         """
         update the state of the drone and surrounding obstacles,
@@ -354,20 +385,7 @@ class SimpleBug():
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
 
-        # remove points that haven't been seen for a while
-        # used to remove points that are either not on the current plane,
-        # or were produced by floating point imprecision,
-        # and avoid iterating over the entire map just to find the nearby points
-        forgotten = []
-        for point, iterations in self.obstacle_points.items():
-            if iterations > self.memory_duration / self.time_step:
-                forgotten.append(point)
-            else:
-                # the point stays for another iteration
-                self.obstacle_points[point] += 1
-
-        for p in forgotten:
-            self.obstacle_points.pop(p, None)
+        self.forgetOldPoints()
 
         self.nearby_points = [self.toBodyFrame(p) for p in self.obstacle_points.keys()
                               if p.distance(self.position) < self.sensor_range]
