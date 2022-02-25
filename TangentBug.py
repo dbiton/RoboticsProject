@@ -2,7 +2,7 @@ from operator import itemgetter
 import math
 import logging
 import time
-from typing import Generator, List, Optional, Set, Tuple
+from typing import Generator, List, Optional, Set, Tuple, Dict, Iterable
 
 from DroneClient import *
 from DroneTypes import *
