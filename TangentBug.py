@@ -292,6 +292,24 @@ class SimpleBug():
         """
         self.goal = self.toBodyFrame(goal)
 
+    def getPointsOnSegment(self, p1: Vec2, p2: Vec2) -> Generator[Vec2, None, None]:
+        """
+        yields the points that are on the line between p1 and p2,
+        at equal intervals of length 1
+        """
+
+        length = p1.distance(p2)
+        if length < 1:
+            # there are no points to return
+            return
+
+        # divide the segment into equal parts with a length of 1
+        delta = 1 / length
+        t = 0
+        while t <= 1:
+            yield t * p1 + (1 - t) * p2
+            t += delta
+
     def detectObstacles(self) -> Generator[Vec2, None, None]:
         """
         find points around the drone, detected by the drones LIDAR,
