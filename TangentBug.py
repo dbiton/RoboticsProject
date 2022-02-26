@@ -422,6 +422,9 @@ class SimpleBug():
 
         boundary_following_planner = self.followBoundary()
         motion_to_goal_planner = self.motionToGoal()
+        # keep track of the last direction motion-to-goal when towards,
+        # while it could still make progress, in world frame
+        last_direction = self.goal.rotate(-self.orientation).normalize()
 
         while True:
             self.updateEnvironment()
@@ -444,12 +447,15 @@ class SimpleBug():
 
             else:
                 point = next(motion_to_goal_planner)
-                if point is not None:
-                    direction = point.rotate(-self.orientation).normalize()
+                if point is None:
                     # motion to goal cant make progress,
                     # reset following the boundary and start it
-                    boundary_following_planner = self.followBoundary(direction)
+                    boundary_following_planner = self.followBoundary(
+                        last_direction)
                     following_boundary = True
+                else:
+                    last_direction = point.rotate(
+                        -self.orientation).normalize()
 
             time.sleep(self.time_step)
 
@@ -469,16 +475,16 @@ class SimpleBug():
                 heuristic_distance = self.heuristicDistance(closest_point)
 
                 if last_heuristic_distance < heuristic_distance:
-                    yield closest_point
+                    yield
 
                 else:
                     last_heuristic_distance = heuristic_distance
-                    self.flyTo(closest_point)
+                    self.flyTo(closest_point * (3 / 4))
+                    yield closest_point
 
             else:
                 self.flyTo(self.goal)
-
-            yield
+                yield self.goal
 
     def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
         """
