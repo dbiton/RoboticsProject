@@ -89,6 +89,21 @@ class Vec2:
         return self / length
 
 
+def getFoVCoverage(center: Vec2, radius: float) -> float:
+    """
+    returns the angle of view ocluded by the half circle,
+    with a given center and radius, from the center to its edge, relative to the origin
+    """
+    origin = Vec2(0, 0)
+    dist = origin.distance(center)
+    if dist <= radius:
+        # the point is inside the circle,
+        # so the field of view is completly covered by it
+        return math.pi
+    # the tangent, radius and line from origin to center form a right triangle
+    return math.atan2(radius, math.sqrt(dist**2 - radius**2))
+
+
 def checkoverlapCircle(a: Vec2, b: Vec2, o: Vec2, radius: float) -> bool:
     """
     checks if the segment (a,b) overlaps with the circle around o
