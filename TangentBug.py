@@ -166,7 +166,7 @@ class SimpleBug():
     # for it to count as being on the same plane
     """
 
-    colision_radius: float = 3
+    colision_radius: float = 4
     """
     how far a line can be from a point in the plane,
     for it to count having colided with it
