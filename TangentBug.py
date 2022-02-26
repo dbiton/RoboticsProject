@@ -531,20 +531,27 @@ class SimpleBug():
 
         obstacle = self.getBlockingObstacle(self.goal)
 
-        # rotate points to avoid coliding on the obstacle,
+        # rotate points away from the obstacle,
+        # such that the new point is on the tangent to the colision circle,
+        # to avoid coliding on the obstacle,
         # when no furthur discontinuity points can be found
-        #
-        # normalize to the boundary distance,
-        # to avoid attempting to fly too close to current position,
-        # which at high speed wont work
         cw = obstacle[-1]
-        norm_cw = cw.rotate(-self.avoidance_angle).normalize() * \
-            self.boundary_distance
-        ccw = obstacle[0]
-        norm_ccw = ccw.rotate(
-            self.avoidance_angle).normalize() * self.boundary_distance
+        cw_avoidance_angle = getFoVCoverage(cw, self.colision_radius)
+        if any(checkoverlapCircle(Vec2(0, 0), cw.rotate(cw_avoidance_angle),
+                                  p, self.colision_radius) for p in obstacle):
+            cw = cw.rotate(-cw_avoidance_angle)
+        else:
+            cw = cw.rotate(cw_avoidance_angle)
 
-        return norm_cw, norm_ccw
+        ccw = obstacle[0]
+        ccw_avoidance_angle = getFoVCoverage(ccw, self.colision_radius)
+        if any(checkoverlapCircle(Vec2(0, 0), ccw.rotate(-ccw_avoidance_angle),
+                                  p, self.colision_radius) for p in obstacle):
+            ccw = ccw.rotate(ccw_avoidance_angle)
+        else:
+            ccw = ccw.rotate(-ccw_avoidance_angle)
+
+        return cw, ccw
 
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
