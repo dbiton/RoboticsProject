@@ -217,10 +217,14 @@ class SimpleBug():
     the client with which the the algorithm communicates with the drone
     """
 
+    raw_obstacle_points: Dict[Vec2, int]
     obstacle_points: Dict[Vec2, int]
     """
     the points detected by the drone on the way to the goal, in world frame,
     with the number of iterations since that point was last spotted
+
+    (the raw points are the ones detected directly from the sensors,
+    and the other ones, are modified according to the needs of the drone)
     """
 
     nearby_points: List[Vec2]
@@ -252,6 +256,7 @@ class SimpleBug():
         self.client = client
         self.plane = plane
         self.obstacle_points = {}
+        self.raw_obstacle_points = {}
         self.position = Vec2(0, 0)
         self.orientation = 0.0
         self.goal = Vec2(0, 0)
@@ -334,14 +339,13 @@ class SimpleBug():
         """
         add a point on an obstacle to the drones memory
         """
-        # round up the coordinates of the point
-        # to avoid storing redundant points
-        self.obstacle_points[point.round()] = 0
+        self.raw_obstacle_points[point] = 0
+        self.obstacle_points[point] = 0
 
         # add points in between points connected to this one,
         # to get smoother changes in the geometry
         addition = []
-        for other in self.obstacle_points:
+        for other in self.raw_obstacle_points:
             if point.distance(other) < 2 * self.colision_radius:
                 addition.extend(self.getPointsOnSegment(point, other))
 
@@ -365,9 +369,12 @@ class SimpleBug():
             else:
                 # the point stays for another iteration
                 self.obstacle_points[point] += 1
+                if point in self.raw_obstacle_points:
+                    self.raw_obstacle_points[point] += 1
 
         for p in forgotten:
             self.obstacle_points.pop(p, None)
+            self.raw_obstacle_points.pop(p, None)
 
     def updateEnvironment(self):
         """
