@@ -580,12 +580,8 @@ class SimpleBug():
 
         while True:
 
-            # for simplicity's sake, the reachable distance is computed,
-            # as though no point outside the drone is visable.
-            #
-            # this causes the drone to stop following the boundary later than is possible,
-            # but is otherwise still correct (for a non-zero width obstacle)
-            reachable_distance = self.goal.length()
+            reachable_distance = min((p.distance(self.goal) for p in self.getBlockingObstacle(
+                self.goal)), default=max(self.goal.length() - self.sensor_range, 0))
 
             followed_obstacle = self.findConnectedPoints(self.toBodyFrame(p)
                                                          for p in prev_followed_obstacle)
@@ -597,14 +593,15 @@ class SimpleBug():
                 # try motion-to-goal again
                 yield True
 
-            followed_point = min(followed_obstacle, key=lambda p: p.length())
-
             followed_distance = min(
-                followed_distance, followed_point.distance(self.goal))
+                followed_distance, min(p.distance(self.goal)
+                                       for p in followed_obstacle))
 
             if followed_distance > reachable_distance:
                 # end boundary following behavior, now that the goal is in reach
                 yield True
+
+            followed_point = min(followed_obstacle, key=lambda p: p.length())
 
             tangent = followed_point.perpendicular()
 
