@@ -184,7 +184,7 @@ class SimpleBug():
     to ensure the busy loop isn't doing redundant computation
     """
 
-    memory_duration: float = 2
+    memory_duration: float = 1.5
     """
     the time in seconds, that it takes for the drone to forget about a point,
     that it hasn't sensed since.
