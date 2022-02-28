@@ -97,8 +97,8 @@ class SimpleBug():
     the client with which the the algorithm communicates with the drone
     """
 
-    raw_obstacle_points: Dict[Vec2, int]
-    obstacle_points: Dict[Vec2, int]
+    raw_obstacle_points: Dict[Vec2, int] = {}
+    obstacle_points: Dict[Vec2, int] = {}
     """
     the points detected by the drone on the way to the goal, in world frame,
     with the number of iterations since that point was last spotted
@@ -107,22 +107,22 @@ class SimpleBug():
     and the other ones, are modified according to the needs of the drone)
     """
 
-    nearby_points: List[Vec2]
+    nearby_points: List[Vec2] = []
     """
     the obstacle points within the range of the drones sensor, in body frame
     """
 
-    position: Vec2
+    position: Vec2 = Vec2(0, 0)
     """
     the current position of the drone in world frame, based on the latest measurements
     """
 
-    orientation: float
+    orientation: float = 0
     """
     the current orientation on the z plane of the drone in world frame, based on the latest measurements
     """
 
-    goal: Vec2
+    goal: Vec2 = Vec2(0, 0)
     """
     the current goal which the drone is flying towards, in body frame
     """
@@ -135,11 +135,6 @@ class SimpleBug():
     def __init__(self, client: DroneClient, plane: float) -> None:
         self.client = client
         self.plane = plane
-        self.obstacle_points = {}
-        self.raw_obstacle_points = {}
-        self.position = Vec2(0, 0)
-        self.orientation = 0.0
-        self.goal = Vec2(0, 0)
 
     def stop(self):
         """
