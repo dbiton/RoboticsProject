@@ -14,12 +14,16 @@ if __name__ == "__main__":
 
     print(client.isConnected())
 
-    time.sleep(4)
-    client.setAtPosition(-200, -800, -100)
-    time.sleep(4)
-
-    goal = Vec2(-600, -800)
+    # the plane on the z axis in which all the positions are found
     plane = -100
+    # find the path from each position,
+    # to the next one on the list
+    positions = [Vec2(-200, -800), Vec2(-600, -800)]
+
+    time.sleep(2)
+    client.setAtPosition(positions[0].x, positions[0].y, plane)
+    time.sleep(1)
 
     bug = SimpleBug(client, plane)
-    bug.findPath(goal)
+    for p in positions[1:]:
+        bug.findPath(p)
