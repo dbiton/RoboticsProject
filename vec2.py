@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import math
+from typing import Generator
 
 
 @dataclass(unsafe_hash=True, frozen=True)
@@ -125,3 +126,21 @@ def checkoverlapCircle(a: Vec2, b: Vec2, o: Vec2, radius: float) -> bool:
     # if the points are on oposite sides, the angle between them would be pi
     # and 0 if they are on the same side
     return abs((b - p).angle(a - p)) > math.pi / 2
+
+
+def getPointsOnSegment(p1: Vec2, p2: Vec2, length: float = 1) -> Generator[Vec2, None, None]:
+    """
+    yields the points that are on the line between p1 and p2,
+    at equal intervals of the given length
+    """
+
+    dist = p1.distance(p2)
+    if dist < length:
+        # there are no points to return
+        return
+
+    delta = length / dist
+    t = delta
+    while t <= 1:
+        yield t * p1 + (1 - t) * p2
+        t += delta
