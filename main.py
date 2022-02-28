@@ -3,7 +3,7 @@ from DroneTypes import *
 from vec2 import *
 import logging
 import time
-from TangentBug import SimpleBug, runTangentBug
+from TangentBug import SimpleBug
 
 logging.basicConfig(level=logging.DEBUG)
 
