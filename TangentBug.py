@@ -201,10 +201,6 @@ class SimpleBug():
             return
 
         for i in range(0, len(point_cloud), 3):
-            plane_delta = point_cloud[i + 2]
-            if abs(plane_delta) >= self.plane_epsilon:
-                # ignore points outside the flight plane
-                continue
             body_point = Vec2(point_cloud[i], point_cloud[i + 1])
             world_point = self.toWorldFrame(body_point)
             yield world_point
