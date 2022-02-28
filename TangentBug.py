@@ -450,7 +450,7 @@ class SimpleBug():
 
         # if no path hint is available, choose the direction based on the path to the goal
         if path_hint is None:
-            path_hint = self.goal.rotate(self.orientation)
+            path_hint = self.goal.rotate(-self.orientation)
 
         while True:
 
@@ -459,8 +459,6 @@ class SimpleBug():
 
             followed_obstacle = self.findConnectedPoints(self.toBodyFrame(p)
                                                          for p in prev_followed_obstacle)
-            prev_followed_obstacle = list(
-                self.toWorldFrame(p) for p in followed_obstacle)
 
             if len(followed_obstacle) == 0:
                 # if the followed obstacle is unreachable,
@@ -475,30 +473,13 @@ class SimpleBug():
                 # end boundary following behavior, now that the goal is in reach
                 yield True
 
-            followed_point = min(followed_obstacle, key=lambda p: p.length())
+            prev_followed_obstacle = list(
+                self.toWorldFrame(p) for p in followed_obstacle)
 
-            tangent = followed_point.perpendicular()
+            flight_direction, path_hint = self.getNextFollowDirection(
+                followed_obstacle, path_hint)
 
-            # ensure that the direction taken by the drone is consistant across iterations
-            tangent = tangent if abs(path_hint.rotate(
-                self.orientation).angle(tangent)) <= math.pi / 2 else -tangent
-            path_hint = tangent.rotate(-self.orientation).normalize()
-
-            # maintain a fixed distance from the followed obstacle,
-            # to both avoid hitting hit by being too close,
-            # or hitting other obstacles by flying too far away
-            distance_offset = followed_point.length() - self.boundary_distance
-
-            course_correction = followed_point.normalize() * distance_offset
-
-            # if the difference between the desired distance and the actual distance is too big,
-            # ignore the tangent and focus on cource correcting,
-            # to avoid taking wide turns or rotating around a point on the boundary
-            flight_direction = tangent + \
-                course_correction if abs(
-                    distance_offset) < self.colision_radius else course_correction
-
-            self.flyTo(flight_direction, velocity=self.drone_velocity / 2)
+            self.flyTo(flight_direction, self.low_velocity)
 
             yield False
 
@@ -528,6 +509,38 @@ class SimpleBug():
                 remaining_points.difference_update(addition)
 
         return nearby_connected
+
+    def getNextFollowDirection(self, obstacle: Iterable[Vec2], path_hint: Vec2) -> Tuple[Vec2, Vec2]:
+        """
+        given an obstacle currently being followed,
+        return the direction the drone should go to next to keep following it,
+        and the direction of the path hint that should be used next time, in world frame
+        """
+
+        followed_point = min(obstacle, key=lambda p: p.length())
+
+        tangent = followed_point.perpendicular()
+
+        # ensure that the direction taken by the drone is consistant across iterations
+        tangent = tangent if abs(path_hint.rotate(
+            self.orientation).angle(tangent)) <= math.pi / 2 else -tangent
+
+        new_path_hint = tangent.rotate(-self.orientation).normalize()
+
+        # maintain a fixed distance from the followed obstacle,
+        # to both avoid hitting hit by being too close,
+        # or hitting other obstacles by flying too far away
+        distance_offset = followed_point.length() - self.boundary_distance
+
+        course_correction = followed_point.normalize() * distance_offset
+
+        # if the difference between the desired distance and the actual distance is too big,
+        # ignore the tangent and focus on cource correcting,
+        # to avoid taking wide turns or rotating around a point on the boundary
+        flight_direction = tangent + course_correction\
+            if abs(distance_offset) < self.offset_threshhold else course_correction
+
+        return flight_direction, new_path_hint
 
 
 class ObstacleMap:  # used in the bonux task for keeping track of points in the entire map
