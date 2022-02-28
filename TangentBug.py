@@ -340,8 +340,7 @@ class SimpleBug():
 
     def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
         """
-        finds all of the points on the obstacle blocking the path,
-        sorted by their angle relative to said path
+        finds all of the points on the obstacle blocking the path
         """
 
         # the points of the blocking obstacle, connected by their colision circles
@@ -368,8 +367,6 @@ class SimpleBug():
             if any(self.checkPointsConnected(point, p) for p in obstacle):
                 obstacle.append(point)
 
-        # reverse the obstacle so that points would be appended in reverse order
-        obstacle.reverse()
         for point in reversed(clockwise_points):
             if any(self.checkPointsConnected(point, p) for p in obstacle):
                 obstacle.append(point)
@@ -378,7 +375,7 @@ class SimpleBug():
     def findDiscontinuityPoints(self) -> Tuple[Vec2, Vec2]:
         """
         find the first and last points that are connected to the obstacle,
-        in both the clockwise or counter-clockwise direction,
+        in both the clockwise and counter-clockwise direction,
         """
 
         obstacle = self.getBlockingObstacle(self.goal)
@@ -387,21 +384,13 @@ class SimpleBug():
         # such that the new point is on the tangent to the colision circle,
         # to avoid coliding on the obstacle,
         # when no furthur discontinuity points can be found
-        cw = obstacle[-1]
-        cw_avoidance_angle = getFoVCoverage(cw, self.colision_radius)
-        if any(checkoverlapCircle(Vec2(0, 0), cw.rotate(cw_avoidance_angle),
-                                  p, self.colision_radius) for p in obstacle):
-            cw = cw.rotate(-cw_avoidance_angle)
-        else:
-            cw = cw.rotate(cw_avoidance_angle)
+        cw = min(obstacle, key=lambda p: self.goal.angle(p))
+        cw_avoidance_angle = getFoVCoverage(cw, self.boundary_distance)
+        cw = cw.rotate(-cw_avoidance_angle)
 
-        ccw = obstacle[0]
-        ccw_avoidance_angle = getFoVCoverage(ccw, self.colision_radius)
-        if any(checkoverlapCircle(Vec2(0, 0), ccw.rotate(-ccw_avoidance_angle),
-                                  p, self.colision_radius) for p in obstacle):
-            ccw = ccw.rotate(ccw_avoidance_angle)
-        else:
-            ccw = ccw.rotate(-ccw_avoidance_angle)
+        ccw = max(obstacle, key=lambda p: self.goal.angle(p))
+        ccw_avoidance_angle = getFoVCoverage(ccw, self.boundary_distance)
+        ccw = ccw.rotate(ccw_avoidance_angle)
 
         return cw, ccw
 
