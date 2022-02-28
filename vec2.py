@@ -73,6 +73,11 @@ class Vec2:
         # multiplication by the othogonal projection matrix (v*v^T)/(v^T*v)
         x = self.x * self.x * other.x + self.x * self.y * other.y
         y = self.x * self.y * other.x + self.y * self.y * other.y
+        squared_length = self.dot(self)
+        if squared_length < 0.0001:
+            # this vector is so small the projection is onto a point,
+            # which is just the point itself
+            return self
         return Vec2(x, y) / self.dot(self)
 
     def perpendicular(self) -> "Vec2":
