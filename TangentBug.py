@@ -17,6 +17,17 @@ class SimpleBug():
     for it to count having colided with it
     """
 
+    linking_distance: float = 8
+    """
+    how far two points need to be from each other,
+    for the segment between them to be considered part of an obstacle
+    """
+
+    connection_distance: float = 8
+    """
+    how far two points need to be from each other to be considered part of the same obstacle
+    """
+
     drone_velocity: float = 10
     """
     the maximum velocity the drone can have while flying.
@@ -52,9 +63,33 @@ class SimpleBug():
     the prefered distance the drone should be from the boundary while following it
     """
 
-    avoidance_angle: float = math.pi / 8
+    offset_threshhold: float = 4
     """
-    the angle which the drones direction is rotated by to avoid flying towards obstacles
+    how far from the boundary while following it the drone should be,
+    before course correction takes precedence over forward progress
+    """
+
+    high_velocity: float = 10
+    """
+    the speed at which the drone flies when there are no obstacles that need to be avoided
+    """
+
+    medium_velocity: float = 7.5
+    """
+    the speed at which the drone flies when obstacles are nearby,
+    but they can be avoided with simple evasive maneuvers
+    """
+
+    low_velocity: float = 5
+    """
+    the speed at which the drone has to fly when there are obstacle nearby,
+    that need to be approched, and avoided, carefully
+    """
+
+    stop_velocity: float = 0.00001
+    """
+    a velocity small enough for the current position to be reachable in time,
+    as otherwise the drone might ignore the command.
     """
 
     client: DroneClient
@@ -110,16 +145,15 @@ class SimpleBug():
         """
         make the drone hover in place
         """
-        self.flyTo(Vec2(0, 0), velocity=0.0001)
+        self.flyTo(Vec2(0, 0), self.stop_velocity)
 
-    def flyTo(self, point: Vec2, velocity: Optional[float] = None):
+    def flyTo(self, point: Vec2, velocity: float):
         """
         flies the drone to a given position in body frame
         """
-        drone_velocity = self.drone_velocity if velocity is None else velocity
         world_point = self.toWorldFrame(point)
         self.client.flyToPosition(
-            world_point.x, world_point.y, self.plane, drone_velocity)
+            world_point.x, world_point.y, self.plane, velocity)
 
     def toBodyFrame(self, point: Vec2) -> Vec2:
         """
@@ -191,8 +225,8 @@ class SimpleBug():
         # to get smoother changes in the geometry
         addition = []
         for other in self.raw_obstacle_points:
-            if point.distance(other) < 2 * self.colision_radius:
-                addition.extend(self.getPointsOnSegment(point, other))
+            if point.distance(other) < self.linking_distance:
+                addition.extend(getPointsOnSegment(point, other))
 
         for p in addition:
             self.obstacle_points[p.round()] = 0
@@ -253,7 +287,7 @@ class SimpleBug():
         returns whether the colision circles of the two given points intersect,
         indicating that they are conneced.
         """
-        return p1.distance(p2) <= 2 * self.colision_radius
+        return p1.distance(p2) <= self.connection_distance
 
     def findPath(self, goal: Vec2):
         """
@@ -324,11 +358,11 @@ class SimpleBug():
 
                 else:
                     last_heuristic_distance = heuristic_distance
-                    self.flyTo(closest_point * (3 / 4))
+                    self.flyTo(closest_point, self.medium_velocity)
                     yield closest_point
 
             else:
-                self.flyTo(self.goal)
+                self.flyTo(self.goal, self.high_velocity)
                 yield self.goal
 
     def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
