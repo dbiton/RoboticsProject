@@ -61,7 +61,7 @@ class TangentBug():
     the prefered distance the drone should be from the boundary while following it
     """
 
-    offset_threshhold: float = 4
+    offset_threshhold: float = 2
     """
     how far from the boundary while following it the drone should be,
     before course correction takes precedence over forward progress
