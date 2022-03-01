@@ -15,10 +15,16 @@ if __name__ == "__main__":
     print(client.isConnected())
 
     # the plane on the z axis in which all the positions are found
-    plane = -100
+    plane = -50
     # find the path from each position,
     # to the next one on the list
-    positions = [Vec2(-200, -800), Vec2(-600, -800)]
+    positions = [
+        Vec2(-600, -300),
+        Vec2(-200, -1200),
+        Vec2(-1200, -550),
+        Vec2(0, -550),
+        Vec2(-1000, -1200)
+    ]
 
     time.sleep(2)
     client.setAtPosition(positions[0].x, positions[0].y, plane)
