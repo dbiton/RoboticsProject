@@ -7,10 +7,8 @@ from DroneClient import *
 from DroneTypes import *
 from vec2 import *
 
-# smaller steps towards tangent-bug
 
-
-class SimpleBug():
+class TangentBug():
     colision_radius: float = 4
     """
     how far a line can be from a point in the plane,
