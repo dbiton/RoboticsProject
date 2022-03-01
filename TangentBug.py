@@ -38,6 +38,12 @@ class TangentBug():
     to ensure the busy loop isn't doing redundant computation
     """
 
+    response_time: float = 0.7
+    """
+    The time a single movement command should take for it to be registered as a valid command.
+    must be greater than 0.6, but not too much.
+    """
+
     memory_duration: float = 1.5
     """
     the time in seconds, that it takes for the drone to forget about a point,
@@ -144,7 +150,12 @@ class TangentBug():
         """
         flies the drone to a given position in body frame
         """
-        world_point = self.toWorldFrame(point)
+
+        # calculate the distance the drone should travel in the given direction,
+        # so that it takes atleast as much time
+        distance = velocity * self.response_time
+        normalized = point.normalize() * distance
+        world_point = self.toWorldFrame(normalized)
         self.client.flyToPosition(
             world_point.x, world_point.y, self.plane, velocity)
 
