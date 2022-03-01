@@ -95,6 +95,11 @@ class TangentBug():
     the client with which the the algorithm communicates with the drone
     """
 
+    plane: float
+    """
+    the z coordinate of the plane in which the algorithm is executed
+    """
+
     raw_obstacle_points: Dict[Vec2, int] = {}
     obstacle_points: Dict[Vec2, int] = {}
     """
@@ -123,11 +128,6 @@ class TangentBug():
     goal: Vec2 = Vec2(0, 0)
     """
     the current goal which the drone is flying towards, in body frame
-    """
-
-    plane: float
-    """
-    the z coordinate of the plane in which the algorithm is executed
     """
 
     def __init__(self, client: DroneClient, plane: float) -> None:
