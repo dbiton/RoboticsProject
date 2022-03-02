@@ -295,10 +295,6 @@ class TangentBug():
                 self.stop()
                 return
 
-            if self.client.checkColision():
-                self.client.reset()
-                return
-
             if following_boundary:
                 if next(boundary_following_planner):
                     # motion to goal can make progress now,
