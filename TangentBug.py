@@ -448,8 +448,10 @@ class TangentBug():
             prev_followed_obstacle = list(
                 self.toWorldFrame(p) for p in followed_obstacle)
 
+            followed_point = min(followed_obstacle, key=lambda p: p.length())
+
             flight_direction, path_hint = self.getNextFollowDirection(
-                followed_obstacle, path_hint)
+                followed_point, path_hint)
 
             self.flyTo(flight_direction, self.low_velocity)
 
@@ -482,9 +484,9 @@ class TangentBug():
 
         return nearby_connected
 
-    def getNextFollowDirection(self, obstacle: Iterable[Vec2], path_hint: Vec2) -> Tuple[Vec2, Vec2]:
+    def getNextFollowDirection(self, followed_point: Vec2, path_hint: Vec2) -> Tuple[Vec2, Vec2]:
         """
-        given an obstacle currently being followed,
+        given an closest point on obstacle currently being followed,
         return the direction the drone should go to next to keep following it,
         and the direction of the path hint that should be used next time, in world frame
         """
