@@ -67,6 +67,12 @@ class TangentBug():
     the prefered distance the drone should be from the boundary while following it
     """
 
+    offset_threshhold: float = 2
+    """
+    how far from the boundary while following it the drone should be,
+    before course correction takes precedence over forward progress
+    """
+
     high_velocity: float = 10
     """
     the speed at which the drone flies when there are no obstacles that need to be avoided
@@ -485,7 +491,7 @@ class TangentBug():
         and the direction of the path hint that should be used next time, in world frame
         """
 
-        tangent = followed_point.perpendicular().normalize()
+        tangent = followed_point.perpendicular()
 
         # ensure that the direction taken by the drone is consistant across iterations
         tangent = tangent if abs(path_hint.rotate(
@@ -503,7 +509,8 @@ class TangentBug():
         # if the difference between the desired distance and the actual distance is too big,
         # ignore the tangent and focus on cource correcting,
         # to avoid taking wide turns or rotating around a point on the boundary
-        flight_direction = tangent + course_correction
+        flight_direction = tangent + course_correction\
+            if abs(distance_offset) < self.offset_threshhold else course_correction
 
         return flight_direction, new_path_hint
 
