@@ -208,7 +208,7 @@ class TangentBug():
         addition = []
         for other in self.raw_obstacle_points:
             if point.distance(other) < self.linking_distance:
-                addition.extend(getPointsOnSegment(point, other))
+                addition.append((point + other) / 2)
 
         for p in addition:
             self.obstacle_points[p.round()] = 0
