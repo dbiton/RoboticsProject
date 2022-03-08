@@ -431,7 +431,7 @@ class TangentBug():
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
 
-    def followBoundary(self, path_hint: Optional[Vec2] = None) -> Generator[bool, None, None]:
+    def followBoundary(self, prev_path_hint: Optional[Vec2] = None) -> Generator[bool, None, None]:
         """
         follow the boundary of the obstacle currently blocking the path,
         yields True once the goal becomes is reachable, and False otherwise
@@ -450,8 +450,8 @@ class TangentBug():
         followed_distance = math.inf
 
         # if no path hint is available, choose the direction based on the path to the goal
-        if path_hint is None:
-            path_hint = self.goal.rotate(-self.orientation)
+        if prev_path_hint is None:
+            prev_path_hint = self.goal.rotate(self.orientation)
 
         while True:
 
@@ -477,12 +477,14 @@ class TangentBug():
             prev_followed_obstacle = list(
                 self.toWorldFrame(p) for p in followed_obstacle)
 
-            followed_point = min(followed_obstacle, key=lambda p: p.length())
+            path_hint = prev_path_hint.rotate(self.orientation)
 
-            flight_direction, path_hint = self.getNextFollowDirection(
+            flight_direction, new_path_hint = self.getNextFollowDirection(
                 followed_point, path_hint)
 
-            self.flyTo(flight_direction, self.low_velocity)
+            prev_path_hint = new_path_hint.rotate(-self.orientation)
+
+            self.autoFlyTo(flight_direction, self.low_velocity)
 
             yield False
 
@@ -517,16 +519,14 @@ class TangentBug():
         """
         given an closest point on obstacle currently being followed,
         return the direction the drone should go to next to keep following it,
-        and the direction of the path hint that should be used next time, in world frame
+        and the direction of the path hint that should be used next time, in body frame
         """
 
         tangent = followed_point.perpendicular()
 
         # ensure that the direction taken by the drone is consistant across iterations
-        tangent = tangent if abs(path_hint.rotate(
-            self.orientation).angle(tangent)) <= math.pi / 2 else -tangent
-
-        new_path_hint = tangent.rotate(-self.orientation).normalize()
+        tangent = tangent if abs(path_hint.angle(
+            tangent)) <= math.pi / 2 else -tangent
 
         # maintain a fixed distance from the followed obstacle,
         # to both avoid hitting hit by being too close,
@@ -541,7 +541,7 @@ class TangentBug():
         flight_direction = tangent + course_correction\
             if abs(distance_offset) < self.offset_threshhold else course_correction
 
-        return flight_direction, new_path_hint
+        return flight_direction, tangent
 
 
 class ObstacleMap:  # used in the bonux task for keeping track of points in the entire map
