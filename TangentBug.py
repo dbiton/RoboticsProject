@@ -21,7 +21,7 @@ class TangentBug():
     for the segment between them to be considered part of an obstacle
     """
 
-    connection_distance: float = 4
+    connection_distance: float = 8
     """
     how far two points need to be from each other to be considered part of the same obstacle
     """
