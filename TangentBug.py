@@ -474,6 +474,12 @@ class TangentBug():
                 # end boundary following behavior, now that the goal is in reach
                 yield True
 
+            # add obstacles that are in the way to the followed obstacle,
+            # to avoid coliding with them while attempting to stick closer to it
+            followed_point = min(followed_obstacle, key=lambda p: p.length())
+            followed_obstacle.update(p for p in self.nearby_points if checkoverlapCircle(
+                Vec2(0, 0), followed_point, p, self.colision_radius))
+
             prev_followed_obstacle = list(
                 self.toWorldFrame(p) for p in followed_obstacle)
 
