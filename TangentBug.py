@@ -144,7 +144,36 @@ class TangentBug():
         """
         make the drone hover in place
         """
-        self.flyTo(Vec2(0, 0), self.stop_velocity)
+        self.autoFlyTo(Vec2(0, 0))
+
+    def autoFlyTo(self, point: Vec2, limit: float = high_velocity):
+        """
+        flies the drone to a given position in body frame,
+        chooses the velocity automatically, based on the given point
+        """
+        length = point.length()
+        velocity: float
+        if abs(Vec2(1, 0).angle(point)) > math.pi / 6:
+            # slow down around sharp corners
+            velocity = self.low_velocity
+        elif length < 0.0001:
+            # stop at current position
+            velocity = self.stop_velocity
+        elif length > self.sensor_range:
+            # fly fast towards the goal
+            velocity = self.high_velocity
+        else:
+            # fly at a reasonable velocity
+            velocity = self.medium_velocity
+
+        velocity = min(limit, velocity)
+
+        # calculate the distance the drone should travel in the given direction,
+        # so that it takes atleast as much time
+        distance = velocity * self.response_time
+        world_point = self.toWorldFrame(point.normalize() * distance)
+        self.client.flyToPosition(
+            world_point.x, world_point.y, self.plane, velocity)
 
     def flyTo(self, point: Vec2, velocity: float):
         """
@@ -336,11 +365,11 @@ class TangentBug():
 
                 else:
                     last_heuristic_distance = heuristic_distance
-                    self.flyTo(closest_point, self.medium_velocity)
+                    self.autoFlyTo(closest_point)
                     yield closest_point
 
             else:
-                self.flyTo(self.goal, self.high_velocity)
+                self.autoFlyTo(self.goal)
                 yield self.goal
 
     def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
