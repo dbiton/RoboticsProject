@@ -44,7 +44,7 @@ class TangentBug():
     must be greater than 0.6, but not too much.
     """
 
-    memory_duration: float = 1.5
+    memory_duration: float = 2
     """
     the time in seconds, that it takes for the drone to forget about a point,
     that it hasn't sensed since.
