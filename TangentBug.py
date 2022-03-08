@@ -15,7 +15,7 @@ class TangentBug():
     for it to count having colided with it
     """
 
-    linking_distance: float = 8
+    linking_distance: float = 6
     """
     how far two points need to be from each other,
     for the segment between them to be considered part of an obstacle
