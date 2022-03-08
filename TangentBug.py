@@ -175,19 +175,6 @@ class TangentBug():
         self.client.flyToPosition(
             world_point.x, world_point.y, self.plane, velocity)
 
-    def flyTo(self, point: Vec2, velocity: float):
-        """
-        flies the drone to a given position in body frame
-        """
-
-        # calculate the distance the drone should travel in the given direction,
-        # so that it takes atleast as much time
-        distance = velocity * self.response_time
-        normalized = point.normalize() * distance
-        world_point = self.toWorldFrame(normalized)
-        self.client.flyToPosition(
-            world_point.x, world_point.y, self.plane, velocity)
-
     def toBodyFrame(self, point: Vec2) -> Vec2:
         """
         given a point in world frame,
