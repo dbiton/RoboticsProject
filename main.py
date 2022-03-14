@@ -19,10 +19,10 @@ if __name__ == "__main__":
     # find the path from each position,
     # to the next one on the list
     positions = [
-        Vec2(0, -550),
+        Vec2(25, -570),
         Vec2(-1000, -1200),
         Vec2(-600, -300),
-        Vec2(0, -550),
+        Vec2(25, -570),
     ]
 
     time.sleep(2)
@@ -31,7 +31,4 @@ if __name__ == "__main__":
 
     bug = TangentBug(client, plane)
     for p in positions[1:]:
-        bug.findPath(p)
-
-    for p in reversed(positions[:-1]):
         bug.findPath(p)
