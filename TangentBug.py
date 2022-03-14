@@ -312,14 +312,17 @@ class TangentBug():
                 return
 
             if following_boundary:
-                if next(boundary_following_planner):
+                point = next(boundary_following_planner, None)
+                if point is None:
                     # motion to goal can make progress now,
                     # reset motion to goal and start it
                     motion_to_goal_planner = self.motionToGoal()
                     following_boundary = False
+                else:
+                    self.autoFlyTo(point, limit=self.low_velocity)
 
             else:
-                point = next(motion_to_goal_planner)
+                point = next(motion_to_goal_planner, None)
                 if point is None:
                     # motion to goal cant make progress,
                     # reset following the boundary and start it
@@ -327,16 +330,17 @@ class TangentBug():
                         last_direction)
                     following_boundary = True
                 else:
+                    self.autoFlyTo(point)
                     last_direction = point.rotate(
                         -self.orientation).normalize()
 
             time.sleep(self.time_step)
 
-    def motionToGoal(self) -> Generator[Optional[Vec2], None, None]:
+    def motionToGoal(self) -> Generator[Vec2, None, None]:
         """
-        flies the drone in the direction of the goal, if possible
-        yields the next point it would have chosen to fly towards,
-        in body frame, once no progress can be made with this path planner
+        follows the most direct path to the goal, if possible
+        yields the next point on that path, in body frame,
+        while this planner can make progress,
         """
         last_heuristic_distance = math.inf
         while True:
@@ -348,15 +352,13 @@ class TangentBug():
                 heuristic_distance = self.heuristicDistance(closest_point)
 
                 if last_heuristic_distance < heuristic_distance:
-                    yield
+                    return
 
                 else:
                     last_heuristic_distance = heuristic_distance
-                    self.autoFlyTo(closest_point)
                     yield closest_point
 
             else:
-                self.autoFlyTo(self.goal)
                 yield self.goal
 
     def getBlockingObstacle(self, path: Vec2) -> List[Vec2]:
@@ -418,10 +420,10 @@ class TangentBug():
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
 
-    def followBoundary(self, prev_path_hint: Optional[Vec2] = None) -> Generator[bool, None, None]:
+    def followBoundary(self, prev_path_hint: Optional[Vec2] = None) -> Generator[Vec2, None, None]:
         """
         follow the boundary of the obstacle currently blocking the path,
-        yields True once the goal becomes is reachable, and False otherwise
+        yields the next point on the path untill the goal becomes reachable.
 
         uses the path hint, if available, to choose a direction to follow,
         that matches the given direction vector in world frame
@@ -451,7 +453,7 @@ class TangentBug():
             if len(followed_obstacle) == 0:
                 # if the followed obstacle is unreachable,
                 # try motion-to-goal again
-                yield True
+                return
 
             followed_distance = min(
                 followed_distance, min(p.distance(self.goal)
@@ -459,7 +461,7 @@ class TangentBug():
 
             if followed_distance > reachable_distance:
                 # end boundary following behavior, now that the goal is in reach
-                yield True
+                return
 
             # add obstacles that are in the way to the followed obstacle,
             # to avoid coliding with them while attempting to stick closer to it
@@ -477,9 +479,7 @@ class TangentBug():
 
             prev_path_hint = new_path_hint.rotate(-self.orientation)
 
-            self.autoFlyTo(flight_direction, self.low_velocity)
-
-            yield False
+            yield flight_direction
 
     def findConnectedPoints(self, points: Iterable[Vec2]) -> Set[Vec2]:
         # round the vectors to use avoid including the same point twice,
