@@ -67,6 +67,13 @@ class TangentBug():
     the prefered distance the drone should be from the boundary while following it
     """
 
+    corridor_distance: float = 7
+    """
+    the minimum distance between walls of a corridor,
+    that the drone should attempt to travese,
+    to ensure safe distance from both sides
+    """
+
     offset_threshhold: float = 2
     """
     how far from the boundary while following it the drone should be,
@@ -415,14 +422,7 @@ class TangentBug():
         that matches the given direction vector in world frame
         """
 
-        # keep track of the points on the obstacle being followed.
-        #
-        # since the position changes bewteen iterations,
-        # keep them in world frame
-        prev_followed_obstacle = list(self.toWorldFrame(p)
-                                      for p in self.getBlockingObstacle(self.goal))
-
-        followed_distance = math.inf
+        min_followed_distance = math.inf
 
         # if no path hint is available, choose the direction based on the path to the goal
         if prev_path_hint is None:
@@ -430,33 +430,37 @@ class TangentBug():
 
         while True:
 
-            reachable_distance = min((p.distance(self.goal) for p in self.getBlockingObstacle(
-                self.goal)), default=max(self.goal.length() - self.sensor_range, 0))
+            # follow the closest point from any obstacle to avoid coliding with incoming obstacles,
+            # while following a boundary
+            followed_point = min(
+                self.nearby_points, key=lambda p: p.length(), default=None)
 
-            followed_obstacle = self.findConnectedPoints(self.toBodyFrame(p)
-                                                         for p in prev_followed_obstacle)
-
-            if len(followed_obstacle) == 0:
-                # if the followed obstacle is unreachable,
-                # try motion-to-goal again
+            if followed_point is None:
+                # if there are no points nearby, try motion to goal again
                 return
 
-            followed_distance = min(
-                followed_distance, min(p.distance(self.goal)
-                                       for p in followed_obstacle))
+            # consider only points near the followed point to be part of the followed obstacle,
+            # to avoid staying in boundary following mode due to unreachable points.
+            # the points should be on the side of the corridor being followed.
+            followed_distance = min(p.distance(
+                self.goal) for p in self.nearby_points if p.distance(followed_point) < self.corridor_distance)
 
-            if followed_distance > reachable_distance:
+            min_followed_distance = min(
+                followed_distance, min_followed_distance)
+
+            # the goal is reachable if there is any point in free space,
+            # which is closer to the goal than the followed obstacle.
+            #
+            # consider points past the minimum distance a corridor can have
+            # (when considering the safe distance from the boundary),
+            # to avoid staying in boundary following mode if a point on the other side of the corridor,
+            # was momentarily considered closer.
+            reachable_distance = min((p.distance(self.goal) for p in self.getBlockingObstacle(
+                self.goal) if p.length() < self.corridor_distance), default=max(self.goal.length() - self.corridor_distance, 0))
+
+            if min_followed_distance > reachable_distance:
                 # end boundary following behavior, now that the goal is in reach
                 return
-
-            # add obstacles that are in the way to the followed obstacle,
-            # to avoid coliding with them while attempting to stick closer to it
-            followed_point = min(followed_obstacle, key=lambda p: p.length())
-            followed_obstacle.update(p for p in self.nearby_points if checkoverlapCircle(
-                Vec2(0, 0), followed_point, p, self.colision_radius))
-
-            prev_followed_obstacle = list(
-                self.toWorldFrame(p) for p in followed_obstacle)
 
             path_hint = prev_path_hint.rotate(self.orientation)
 
