@@ -216,18 +216,7 @@ class TangentBug():
         """
         add a point on an obstacle to the drones memory
         """
-        self.raw_obstacle_points[point] = 0
-        self.obstacle_points[point] = 0
-
-        # add points in between points connected to this one,
-        # to get smoother changes in the geometry
-        addition = []
-        for other in self.raw_obstacle_points:
-            if point.distance(other) < self.linking_distance:
-                addition.append((point + other) / 2)
-
-        for p in addition:
-            self.obstacle_points[p.round()] = 0
+        self.obstacle_points[point.round()] = 0
 
     def forgetOldPoints(self):
         """
