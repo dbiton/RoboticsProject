@@ -153,10 +153,7 @@ class TangentBug():
         """
         length = point.length()
         velocity: float
-        if abs(Vec2(1, 0).angle(point)) > math.pi / 6:
-            # slow down around sharp corners
-            velocity = self.low_velocity
-        elif length < 0.0001:
+        if length < 0.0001:
             # stop at current position
             velocity = self.stop_velocity
         elif length > self.sensor_range:
