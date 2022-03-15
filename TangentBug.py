@@ -5,6 +5,7 @@ from typing import Generator, List, Optional, Set, Tuple, Dict, Iterable
 
 from DroneClient import *
 from DroneTypes import *
+from quat import Quaternion
 from vec2 import *
 
 
@@ -138,6 +139,12 @@ class TangentBug():
     the current orientation on the z plane of the drone in world frame, based on the latest measurements
     """
 
+    orientation3D: Quaternion = Quaternion(0, 0, 0, 1)
+    """
+    the full three dimentional orientation of the drone,
+    used only for initial conversions to the 2D plane
+    """
+
     goal: Vec2 = Vec2(0, 0)
     """
     the current goal which the drone is flying towards, in body frame
@@ -212,8 +219,10 @@ class TangentBug():
             return
 
         for i in range(0, len(point_cloud), 3):
-            body_point = Vec2(point_cloud[i], point_cloud[i + 1])
-            world_point = self.toWorldFrame(body_point)
+            point = Quaternion(
+                point_cloud[i], point_cloud[i + 1], point_cloud[i + 2], 0)
+            rotated = self.orientation3D * point * self.orientation3D.conjugate()
+            world_point = Vec2(rotated.x, rotated.y) + self.position
             yield world_point
 
     def addObstaclePoint(self, point: Vec2):
@@ -252,6 +261,9 @@ class TangentBug():
         based on the latest data from the sensors
         """
         pose = self.client.getPose()
+        self.orientation3D = Quaternion.from_euler_angles(pose.orientation.x_rad,
+                                                          pose.orientation.y_rad,
+                                                          pose.orientation.z_rad)
         position = Vec2(pose.pos.x_m, pose.pos.y_m)
 
         world_goal = self.toWorldFrame(self.goal)
