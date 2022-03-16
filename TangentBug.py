@@ -440,6 +440,20 @@ class TangentBug():
     def heuristicDistance(self, point: Vec2) -> float:
         return point.length() + point.distance(self.goal)
 
+    def getFollowedBoundary(self, followed_point: Vec2) -> Generator[Vec2, None, None]:
+        """
+        returns the points on the boundary near the currently followed point,
+        that should be considered as the part of the obstacle being followed.
+        """
+        corridor_ratio = self.cur_corridor_width / self.corridor_distance
+        # ensure that the resized circle around the followed point,
+        # does not include the other side of the corridor
+        resize = min(1, 0.9 * corridor_ratio)
+
+        for point in self.nearby_points:
+            if point.distance(followed_point) < resize * self.corridor_distance:
+                yield point
+
     def followBoundary(self, prev_path_hint: Optional[Vec2] = None) -> Generator[Vec2, None, None]:
         """
         follow the boundary of the obstacle currently blocking the path,
@@ -470,7 +484,7 @@ class TangentBug():
             # to avoid staying in boundary following mode due to unreachable points.
             # the points should be on the side of the corridor being followed.
             followed_distance = min(p.distance(
-                self.goal) for p in self.nearby_points if p.distance(followed_point) < self.corridor_distance)
+                self.goal) for p in self.getFollowedBoundary(followed_point))
 
             min_followed_distance = min(
                 followed_distance, min_followed_distance)
