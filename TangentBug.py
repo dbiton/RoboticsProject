@@ -298,6 +298,14 @@ class TangentBug():
         """
         return p1.distance(p2) <= self.connection_distance
 
+    def getBoundaryFollowingVelocity(self) -> float:
+        """
+        returns the velocity the drone should have while following a boundary
+        """
+        # slow down inside tight corridors
+        corridor_ratio = self.cur_corridor_width / self.corridor_distance
+        return min(1, corridor_ratio) * self.low_velocity
+
     def findPath(self, goal: Vec2):
         """
         flies the drone towards the goal,
@@ -330,7 +338,8 @@ class TangentBug():
                     motion_to_goal_planner = self.motionToGoal()
                     following_boundary = False
                 else:
-                    self.autoFlyTo(point, limit=self.low_velocity)
+                    self.autoFlyTo(
+                        point, limit=self.getBoundaryFollowingVelocity())
 
             else:
                 point = next(motion_to_goal_planner, None)
