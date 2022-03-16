@@ -27,7 +27,7 @@ class TangentBug():
     how far two points need to be from each other to be considered part of the same obstacle
     """
 
-    drone_velocity: float = 10
+    max_velocity: float = 10
     """
     the maximum velocity the drone can have while flying.
     can be lower (for example while turing)
@@ -79,23 +79,6 @@ class TangentBug():
     """
     how far from the boundary while following it the drone should be,
     before course correction takes precedence over forward progress
-    """
-
-    high_velocity: float = 10
-    """
-    the speed at which the drone flies when there are no obstacles that need to be avoided
-    """
-
-    medium_velocity: float = 7.5
-    """
-    the speed at which the drone flies when obstacles are nearby,
-    but they can be avoided with simple evasive maneuvers
-    """
-
-    low_velocity: float = 5
-    """
-    the speed at which the drone has to fly when there are obstacle nearby,
-    that need to be approched, and avoided, carefully
     """
 
     stop_velocity: float = 0.00001
@@ -165,7 +148,7 @@ class TangentBug():
         """
         self.autoFlyTo(Vec2(0, 0))
 
-    def autoFlyTo(self, point: Vec2, limit: float = high_velocity):
+    def autoFlyTo(self, point: Vec2, limit: float = max_velocity):
         """
         flies the drone to a given position in body frame,
         chooses the velocity automatically, based on the given point
@@ -175,14 +158,12 @@ class TangentBug():
         if length < 0.0001:
             # stop at current position
             velocity = self.stop_velocity
-        elif length > self.sensor_range:
-            # fly fast towards the goal
-            velocity = self.high_velocity
         else:
-            # fly at a reasonable velocity
-            velocity = self.medium_velocity
+            # take atleast a second to respond to obstacles ahead
+            safety_velocity = min((p.length()
+                                   for p in self.nearby_points), default=math.inf)
 
-        velocity = min(limit, velocity)
+            velocity = velocity = min(limit, safety_velocity)
 
         # calculate the distance the drone should travel in the given direction,
         # so that it takes atleast as much time
@@ -298,14 +279,6 @@ class TangentBug():
         """
         return p1.distance(p2) <= self.connection_distance
 
-    def getBoundaryFollowingVelocity(self) -> float:
-        """
-        returns the velocity the drone should have while following a boundary
-        """
-        # slow down inside tight corridors
-        corridor_ratio = self.cur_corridor_width / self.corridor_distance
-        return min(1, corridor_ratio) * self.low_velocity
-
     def findPath(self, goal: Vec2):
         """
         flies the drone towards the goal,
@@ -338,8 +311,7 @@ class TangentBug():
                     motion_to_goal_planner = self.motionToGoal()
                     following_boundary = False
                 else:
-                    self.autoFlyTo(
-                        point, limit=self.getBoundaryFollowingVelocity())
+                    self.autoFlyTo(point)
 
             else:
                 point = next(motion_to_goal_planner, None)
