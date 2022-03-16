@@ -150,6 +150,11 @@ class TangentBug():
     the current goal which the drone is flying towards, in body frame
     """
 
+    cur_corridor_width: float = math.inf
+    """
+    the actual width of the corridor the drone is inside of
+    """
+
     def __init__(self, client: DroneClient, plane: float) -> None:
         self.client = client
         self.plane = plane
@@ -270,6 +275,7 @@ class TangentBug():
         self.position = position
         self.orientation = pose.orientation.z_rad
         self.goal = self.toBodyFrame(world_goal)
+        self.cur_corridor_width = self.findCorridorWidth()
 
         for point in self.detectObstacles():
             self.addObstaclePoint(point)
@@ -482,6 +488,21 @@ class TangentBug():
             prev_path_hint = new_path_hint.rotate(-self.orientation)
 
             yield flight_direction
+
+    def findCorridorWidth(self) -> float:
+        """
+        finds the width of the corridor the drone is in,
+        if the drone is not in a corridor, that distance is infinity.
+        """
+        closest_point = min(
+            self.nearby_points, key=lambda p: p.length(), default=None)
+
+        if closest_point is None:
+            return math.inf
+
+        opposing_distance = min((p.length() for p in self.nearby_points
+                                if abs(closest_point.angle(p)) > math.pi / 2), default=math.inf)
+        return closest_point.length() + opposing_distance
 
     def findConnectedPoints(self, points: Iterable[Vec2]) -> Set[Vec2]:
         # round the vectors to use avoid including the same point twice,
