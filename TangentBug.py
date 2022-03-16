@@ -465,9 +465,7 @@ class TangentBug():
 
         min_followed_distance = math.inf
 
-        # if no path hint is available, choose the direction based on the path to the goal
-        if prev_path_hint is None:
-            prev_path_hint = self.goal.rotate(self.orientation)
+        right_follow = None
 
         while True:
 
@@ -479,6 +477,18 @@ class TangentBug():
             if followed_point is None:
                 # if there are no points nearby, try motion to goal again
                 return
+
+            if right_follow is None:
+                # helps convince pyright linter that followed point is not None in this branch
+                fp = followed_point
+
+                # if no path hint is available, choose the direction based on the path to the goal
+                path_hint = prev_path_hint.rotate(
+                    self.orientation) if prev_path_hint is not None else self.goal
+
+                # find the direction to follow that is closest to the path the drone is already going towards
+                right_follow = min(
+                    [True, False], key=lambda b: abs(self.getNextFollowPoint(fp, b).angle(path_hint)))
 
             # consider only points near the followed point to be part of the followed obstacle,
             # to avoid staying in boundary following mode due to unreachable points.
@@ -503,12 +513,8 @@ class TangentBug():
                 # end boundary following behavior, now that the goal is in reach
                 return
 
-            path_hint = prev_path_hint.rotate(self.orientation)
-
-            flight_direction, new_path_hint = self.getNextFollowDirection(
-                followed_point, path_hint)
-
-            prev_path_hint = new_path_hint.rotate(-self.orientation)
+            flight_direction = self.getNextFollowPoint(
+                followed_point, right_follow)
 
             yield flight_direction
 
@@ -581,6 +587,32 @@ class TangentBug():
             if abs(distance_offset) < self.offset_threshhold else course_correction
 
         return flight_direction, tangent
+
+    def getNextFollowPoint(self, followed_point: Vec2, right_follow: bool) -> Vec2:
+        """
+        given an closest point on obstacle currently being followed,
+        and whether the obstacle is being followed from the left or from the right,
+        return the point the drone should go to next to keep following it, in body frame
+        """
+
+        angle_sign = 1 if right_follow else -1
+
+        # find out ahead of time whether the tangent leads to a future colision
+        away_point = max(self.getFollowedBoundary(followed_point),
+                         key=lambda p: angle_sign * followed_point.angle(p))
+
+        corridor_ratio = self.cur_corridor_width / self.corridor_distance
+        # ensure that the distance from the boundary matches the corridor distance,
+        # to avoid hitting the other side of the corridor
+        resize = min(1, 0.9 * corridor_ratio)
+        radius = min(resize * self.boundary_distance,
+                     0.9999 * away_point.length())
+        # rotate away from the obstacle to avoid coliding with it in the future
+        avoidance_angle = getFoVCoverage(away_point, radius)
+
+        target_point = away_point.rotate(avoidance_angle * angle_sign)
+
+        return target_point
 
 
 class ObstacleMap:  # used in the bonux task for keeping track of points in the entire map
