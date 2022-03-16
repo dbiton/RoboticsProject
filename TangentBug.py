@@ -10,7 +10,7 @@ from vec2 import *
 
 
 class TangentBug():
-    colision_radius: float = 4
+    colision_radius: float = 3
     """
     how far a line can be from a point in the plane,
     for it to count having colided with it
@@ -63,14 +63,14 @@ class TangentBug():
     while a point outside that range, it is ignored by the path finding algorithm.
     """
 
-    boundary_distance: float = 5
+    boundary_distance: float = 4
     """
     the prefered distance the drone should be from the boundary while following it
     """
 
-    corridor_distance: float = 7
+    corridor_distance: float = 9
     """
-    the minimum distance between walls of a corridor,
+    the prefered minimal distance between walls of a corridor,
     that the drone should attempt to travese,
     to ensure safe distance from both sides
     """
