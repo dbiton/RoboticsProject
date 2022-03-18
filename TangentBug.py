@@ -595,10 +595,9 @@ class TangentBug():
         away_point = max(self.getFollowedBoundary(followed_point),
                          key=lambda p: angle_sign * followed_point.angle(p))
 
-        corridor_ratio = self.cur_corridor_width / self.corridor_distance
-        # ensure that the distance from the boundary matches the corridor distance,
-        # to avoid hitting the other side of the corridor
-        resize = min(1, 0.9 * corridor_ratio)
+        # ensure that the distance from the boundary is small enough,
+        # to avoid being closer to the other side of the corridor
+        resize = min(1, 0.4 * self.cur_corridor_width)
         radius = min(resize * self.boundary_distance,
                      0.9999 * away_point.length())
         # rotate away from the obstacle to avoid coliding with it in the future
