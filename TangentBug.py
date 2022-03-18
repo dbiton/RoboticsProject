@@ -441,16 +441,36 @@ class TangentBug():
 
         right_follow = None
 
+        # keep track of all the nearby points that were previously followed,
+        # to ensure the drone doesn't stick to disconnected obstacles
+        prev_followed_obstacle = [self.toWorldFrame(p)
+                                  for p in self.getBlockingObstacle(self.goal)]
+
         while True:
 
-            # follow the closest point from any obstacle to avoid coliding with incoming obstacles,
-            # while following a boundary
-            followed_point = min(
-                self.nearby_points, key=lambda p: p.length(), default=None)
+            # ensure that the obstacle contains only points that are currently nearby
+            followed_obstacle = set(self.toBodyFrame(p).round()
+                                    for p in prev_followed_obstacle)
+            followed_obstacle.intersection_update(p.round()
+                                                  for p in self.nearby_points)
+
+            followed_point = min(followed_obstacle,
+                                 key=lambda p: p.length(), default=None)
 
             if followed_point is None:
-                # if there are no points nearby, try motion to goal again
+                # if the followed obstacle is unreachable, try motion to goal again
                 return
+
+            # add points near the new followed point to follow along in that direction
+            followed_obstacle.update(
+                self.getFollowedBoundary(followed_point))
+
+            # ensure that obstacles in the way to the followed obstalce are not ignored
+            followed_obstacle.update(
+                p for p in self.nearby_points if p.length() < self.boundary_distance)
+
+            prev_followed_obstacle = [
+                self.toWorldFrame(p) for p in followed_obstacle]
 
             if right_follow is None:
                 # helps convince pyright linter that followed point is not None in this branch
