@@ -263,8 +263,10 @@ class TangentBug():
 
         self.forgetOldPoints()
 
+        # ignore points that are too close to the drone,
+        # which might make it seem like the drone is inside the wall
         self.nearby_points = [self.toBodyFrame(p) for p in self.obstacle_points.keys()
-                              if p.distance(self.position) < self.sensor_range]
+                              if 1 < p.distance(self.position) < self.sensor_range]
 
     def checkObstaclesInPath(self) -> bool:
         """
