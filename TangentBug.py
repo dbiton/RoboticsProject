@@ -504,13 +504,12 @@ class TangentBug():
 
             # the goal is reachable if there is any point in free space,
             # which is closer to the goal than the followed obstacle.
-            #
-            # consider points past the minimum distance a corridor can have
-            # (when considering the safe distance from the boundary),
-            # to avoid staying in boundary following mode if a point on the other side of the corridor,
-            # was momentarily considered closer.
-            reachable_distance = min((p.distance(self.goal) for p in self.getBlockingObstacle(
-                self.goal) if p.length() < self.corridor_distance), default=max(self.goal.length() - self.corridor_distance, 0))
+            # if the goal is blocked, the boundary around the first point blocking it,
+            # is at the edge of free space
+            blocking_point = self.findSegmentColision(self.goal)
+            reachable_distance = max(self.goal.length() - self.sensor_range, 0)\
+                if blocking_point is None else min(p.distance(self.goal)
+                                                   for p in self.getFollowedBoundary(blocking_point))
 
             if min_followed_distance > reachable_distance:
                 # end boundary following behavior, now that the goal is in reach
