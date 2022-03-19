@@ -592,28 +592,34 @@ class TangentBug():
 
     def getNextFollowPoint(self, followed_point: Vec2, right_follow: bool) -> Vec2:
         """
-        given an closest point on obstacle currently being followed,
+        given a point on an obstacle being followed,
         and whether the obstacle is being followed from the left or from the right,
         return the point the drone should go to next to keep following it, in body frame
         """
 
         angle_sign = 1 if right_follow else -1
 
-        # find out ahead of time whether the tangent leads to a future colision
-        away_point = max(self.getFollowedBoundary(followed_point),
-                         key=lambda p: angle_sign * followed_point.angle(p))
+        away_point = Vec2(0, 0)
+        max_angle = -math.inf
 
-        # ensure that the distance from the boundary is small enough,
-        # to avoid being closer to the other side of the corridor
-        resize = min(1, 0.4 * self.cur_corridor_width)
-        radius = min(resize * self.boundary_distance,
-                     0.9999 * away_point.length())
-        # rotate away from the obstacle to avoid coliding with it in the future
-        avoidance_angle = getFoVCoverage(away_point, radius)
+        for point in self.getFollowedBoundary(followed_point):
+            # ensure that the distance from the boundary is small enough,
+            # to avoid being closer to the other side of the corridor
+            resize = min(1, 0.4 * self.cur_corridor_width)
+            radius = min(resize * self.boundary_distance,
+                         0.9999 * point.length())
 
-        target_point = away_point.rotate(avoidance_angle * angle_sign)
+            # rotate away from the obstacle to avoid coliding with it
+            avoidance_angle = getFoVCoverage(point, radius)
+            rotated = point.rotate(avoidance_angle * angle_sign)
 
-        return target_point
+            # find the point that would avoid all other points on the obstacle as well
+            angle = angle_sign * followed_point.angle(rotated)
+            if max_angle < angle:
+                max_angle = angle
+                away_point = rotated
+
+        return away_point
 
 
 class ObstacleMap:  # used in the bonux task for keeping track of points in the entire map
