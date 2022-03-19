@@ -330,6 +330,15 @@ class TangentBug():
 
             time.sleep(self.time_step)
 
+    def findSegmentColision(self, path: Vec2) -> Optional[Vec2]:
+        """
+        returns the first point on an obstacle which intersects with the given path from the origin,
+        if the segment intersects with an obstacle
+        """
+        return min((p for p in self.nearby_points if checkoverlapCircle(
+                    Vec2(0, 0), path, p, self.colision_radius)),
+                   key=lambda p: p.length(), default=None)
+
     def motionToGoal(self) -> Generator[Vec2, None, None]:
         """
         follows the most direct path to the goal, if possible
