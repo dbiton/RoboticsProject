@@ -81,6 +81,11 @@ class TangentBug():
     before course correction takes precedence over forward progress
     """
 
+    vertigo_duration: float = 2
+    """
+    how long does the vertigo caused by sharp turns last, in seconds
+    """
+
     stop_velocity: float = 0.00001
     """
     a velocity small enough for the current position to be reachable in time,
@@ -138,6 +143,12 @@ class TangentBug():
     the actual width of the corridor the drone is inside of
     """
 
+    vertigo: int = 0
+    """
+    the number of ticks untill the vertigo from sharp turns subsides,
+    and the drone can move faster.
+    """
+
     def __init__(self, client: DroneClient, plane: float) -> None:
         self.client = client
         self.plane = plane
@@ -154,6 +165,10 @@ class TangentBug():
         chooses the velocity automatically, based on the given point
         """
         length = point.length()
+        if abs(Vec2(1, 0).angle(point)) > math.pi / 6:
+            # flying through a sharp turn, expeciencing vertigo as a result
+            self.vertigo = round(2 / self.time_step)
+
         velocity: float
         if length < 0.0001:
             # stop at current position
@@ -162,8 +177,12 @@ class TangentBug():
             # take atleast a second to respond to obstacles ahead
             safety_velocity = min((p.length()
                                    for p in self.nearby_points), default=math.inf)
+            if self.vertigo <= 0:
+                safety_velocity *= 2
+            else:
+                self.vertigo -= 1
 
-            velocity = velocity = min(limit, safety_velocity)
+            velocity = min(limit, safety_velocity)
 
         # calculate the distance the drone should travel in the given direction,
         # so that it takes atleast as much time
