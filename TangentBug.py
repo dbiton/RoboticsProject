@@ -178,7 +178,7 @@ class TangentBug():
             safety_velocity = min((p.length()
                                    for p in self.nearby_points), default=math.inf)
             if self.vertigo <= 0:
-                safety_velocity *= 2
+                safety_velocity *= 1.5
             else:
                 self.vertigo -= 1
 
