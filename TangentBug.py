@@ -413,6 +413,9 @@ class TangentBug():
         while True:
             if self.checkObstaclesInPath():
                 discontinuity_points = self.findDiscontinuityPoints()
+                if discontinuity_points is None:
+                    # too close to edge
+                    return
 
                 closest_point = min(discontinuity_points,
                                     key=lambda p: self.heuristicDistance(p))
@@ -462,10 +465,12 @@ class TangentBug():
                 obstacle.append(point)
         return obstacle
 
-    def findDiscontinuityPoints(self) -> Tuple[Vec2, Vec2]:
+    def findDiscontinuityPoints(self) -> Optional[Tuple[Vec2, Vec2]]:
         """
         find the first and last points that are connected to the obstacle,
         in both the clockwise and counter-clockwise direction,
+        if the drone is too close to either of them to avoid them,
+        returns None.
         """
 
         obstacle = self.getBlockingObstacle(self.goal)
@@ -476,10 +481,14 @@ class TangentBug():
         # when no furthur discontinuity points can be found
         cw = min(obstacle, key=lambda p: self.goal.angle(p))
         cw_avoidance_angle = getFoVCoverage(cw, self.boundary_distance)
+        if cw_avoidance_angle is None:
+            return None
         cw = cw.rotate(-cw_avoidance_angle)
 
         ccw = max(obstacle, key=lambda p: self.goal.angle(p))
         ccw_avoidance_angle = getFoVCoverage(ccw, self.boundary_distance)
+        if ccw_avoidance_angle is None:
+            return None
         ccw = ccw.rotate(ccw_avoidance_angle)
 
         return cw, ccw
@@ -675,6 +684,7 @@ class TangentBug():
 
             # rotate away from the obstacle to avoid coliding with it
             avoidance_angle = getFoVCoverage(point, radius)
+            assert avoidance_angle is not None
             rotated = point.rotate(avoidance_angle * angle_sign)
 
             # find the point that would avoid all other points on the obstacle as well

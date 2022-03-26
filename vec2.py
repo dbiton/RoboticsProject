@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import math
-from typing import Generator
+from typing import Generator, Optional
 
 
 @dataclass(unsafe_hash=True, frozen=True)
@@ -95,7 +95,7 @@ class Vec2:
         return self / length
 
 
-def getFoVCoverage(center: Vec2, radius: float) -> float:
+def getFoVCoverage(center: Vec2, radius: float) -> Optional[float]:
     """
     returns the angle of view ocluded by the half circle,
     with a given center and radius, from the center to its edge, relative to the origin
@@ -104,8 +104,8 @@ def getFoVCoverage(center: Vec2, radius: float) -> float:
     dist = origin.distance(center)
     if dist <= radius:
         # the point is inside the circle,
-        # so the field of view is completly covered by it
-        return math.pi
+        # so the tangent is undefined
+        return None
     # the tangent, radius and line from origin to center form a right triangle
     return math.atan2(radius, math.sqrt(dist**2 - radius**2))
 
