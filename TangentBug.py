@@ -371,6 +371,13 @@ class TangentBug():
             time.sleep(self.time_step)
 
     def findTaxicabPath(self, goal: Vec2):
+        """
+        find a path to the goal that passes through fixed points on a grid of roads in the map,
+        called waypoints, which allows for faster and safer movement,
+        since the roads between each waypoint are known to be clear of obstacles.
+
+        approximates the simplest path between the start and the goal, with the shortest taxicab distance.
+        """
         position = self.client.getPose().pos
         pos = Vec2(position.x_m, position.y_m)
 
