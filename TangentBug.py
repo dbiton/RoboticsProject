@@ -96,14 +96,14 @@ class TangentBug():
     as otherwise the drone might ignore the command.
     """
 
-    known_waypoint: Vec2 = Vec2(-1173, -509)
+    known_waypoint: Vec2 = Vec2(-1178, -509)
     """
     a point on the map, known for being an a road intersection,
     used as a reference for finding other intersections on the grid
     """
 
-    grid_x_interval: float = 170
-    grid_y_interval: float = 195
+    grid_x_interval: float = 170.7
+    grid_y_interval: float = 194.7
     """
     the values along the x and y coordinates, such that after each step in either the x or y direction,
     there is another intersection on the grid (within the borders of the map).
