@@ -525,6 +525,9 @@ class TangentBug():
 
         # keep track of all the nearby points that were previously followed,
         # to ensure the drone doesn't stick to disconnected obstacles
+        #
+        # include initial blocking obstacle in followed distance calculations,
+        # to avoid going back and forth between boundary following and motion-to-goal.
         prev_followed_obstacle = [self.toWorldFrame(p)
                                   for p in self.getBlockingObstacle(self.goal)]
 
@@ -536,6 +539,10 @@ class TangentBug():
             followed_obstacle.intersection_update(p.round()
                                                   for p in self.nearby_points)
 
+            # ensure that obstacles in the way to the followed obstalce are not ignored,
+            followed_obstacle.update(
+                p for p in self.nearby_points if p.length() < self.boundary_distance * 1.5)
+
             followed_point = min(followed_obstacle,
                                  key=lambda p: p.length(), default=None)
 
@@ -544,12 +551,11 @@ class TangentBug():
                 return
 
             # add points near the new followed point to follow along in that direction
+            # only adds points near the followed point,
+            # to avoid staying in boundary following mode due to unreachable points.
+            # the points should be on the side of the corridor being followed.
             followed_obstacle.update(
                 self.getFollowedBoundary(followed_point))
-
-            # ensure that obstacles in the way to the followed obstalce are not ignored
-            followed_obstacle.update(
-                p for p in self.nearby_points if p.length() < self.boundary_distance)
 
             prev_followed_obstacle = [
                 self.toWorldFrame(p) for p in followed_obstacle]
@@ -566,14 +572,11 @@ class TangentBug():
                 right_follow = min(
                     [True, False], key=lambda b: abs(self.getNextFollowPoint(fp, b).angle(path_hint)))
 
-            # consider only points near the followed point to be part of the followed obstacle,
-            # to avoid staying in boundary following mode due to unreachable points.
-            # the points should be on the side of the corridor being followed.
-            followed_distance = min(p.distance(
-                self.goal) for p in self.getFollowedBoundary(followed_point))
+            cur_followed_distance = min(p.distance(self.goal)
+                                        for p in followed_obstacle)
 
             min_followed_distance = min(
-                followed_distance, min_followed_distance)
+                cur_followed_distance, min_followed_distance)
 
             # the goal is reachable if there is any point in free space,
             # which is closer to the goal than the followed obstacle.
