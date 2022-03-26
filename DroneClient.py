@@ -105,9 +105,6 @@ class DroneClient:
         self.client.simSetVehiclePose(pose, True)
         self.flyToPosition(x, y, z, 1)
 
-    def checkColision(self) -> bool:
-        return self.client.simGetCollisionInfo().has_collided
-
     def reset(self):
         """
         Returns the drone to start position
