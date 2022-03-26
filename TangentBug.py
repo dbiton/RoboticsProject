@@ -200,7 +200,7 @@ class TangentBug():
                 self.vertigo -= 1
 
             # slow down next to goal, to avoid hitting obstacles near waypoints
-            velocity = min(limit, safety_velocity, self.goal.length())
+            velocity = min(limit, safety_velocity, self.goal.length() / 2)
 
         # calculate the distance the drone should travel in the given direction,
         # so that it takes atleast as much time
