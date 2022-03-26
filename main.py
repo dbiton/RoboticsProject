@@ -19,12 +19,12 @@ if __name__ == "__main__":
     # find the path from each position,
     # to the next one on the list
     positions = [
-        Vec2(-600, -300),
-        Vec2(-200, -1200),
-        Vec2(-1200, -550),
-        Vec2(25, -570),
-        Vec2(-1000, -1200),
-        Vec2(-600, -300),
+        Vec2(-170, -980),
+        Vec2(-320, -650),
+        Vec2(-580, -430),
+        Vec2(-550, -700),
+        Vec2(-1090, -955),
+        Vec2(-600, -1100)
     ]
 
     time.sleep(2)
