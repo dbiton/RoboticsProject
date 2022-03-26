@@ -343,6 +343,9 @@ class TangentBug():
                 return
 
             if following_boundary:
+                # if the drone ended up following a boundary,
+                # it might be off the road, dont speed up
+                limit = self.max_ubran_velocity
                 point = next(boundary_following_planner, None)
                 if point is None:
                     # motion to goal can make progress now,
