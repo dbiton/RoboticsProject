@@ -368,31 +368,25 @@ class TangentBug():
             time.sleep(self.time_step)
 
     def findTaxicabPath(self, goal: Vec2):
-        at_waypoint = False
-        while True:
-            position = self.client.getPose().pos
-            pos = Vec2(position.x_m, position.y_m)
+        position = self.client.getPose().pos
+        pos = Vec2(position.x_m, position.y_m)
 
-            # find the nearest waypoint to the position
-            rel = pos - self.known_waypoint
-            floored = Vec2(round(rel.x / self.grid_x_interval) * self.grid_x_interval,
-                           round(rel.y / self.grid_y_interval) * self.grid_y_interval)
-            closest_waypoint = floored + self.known_waypoint
+        # find the path through waypoints first
+        # then do the rest with normal tangent bug
+        rel_pos = pos - self.known_waypoint
+        rel_goal = goal - self.known_waypoint
+        start_waypoint = Vec2(round(rel_pos.x / self.grid_x_interval) * self.grid_x_interval,
+                              round(rel_pos.y / self.grid_y_interval) * self.grid_y_interval) + self.known_waypoint
+        end_waypoint = Vec2(round(rel_goal.x / self.grid_x_interval) * self.grid_x_interval,
+                            round(rel_goal.y / self.grid_y_interval) * self.grid_y_interval) + self.known_waypoint
 
-            next_waypoint = min((closest_waypoint + p for p in
-                                 [Vec2(self.grid_x_interval, 0), Vec2(-self.grid_x_interval, 0),
-                                  Vec2(0, self.grid_y_interval), Vec2(0, -self.grid_y_interval)]), key=lambda p: p.distance(goal))
-
-            if next_waypoint.distance(goal) < pos.distance(goal):
-                if at_waypoint:
-                    self.findPath(next_waypoint,
-                                  limit=self.max_highway_velocity)
-                else:
-                    self.findPath(next_waypoint)
-                at_waypoint = True
-            else:
-                self.findPath(goal)
-                return
+        # seperate the path between the waypoints to a horizontal and vertical part,
+        # to match the roads between them. in those roads the drone can be faster.
+        self.findPath(start_waypoint, limit=self.max_ubran_velocity)
+        self.findPath(Vec2(end_waypoint.x, start_waypoint.y),
+                      limit=self.max_highway_velocity)
+        self.findPath(end_waypoint, limit=self.max_highway_velocity)
+        self.findPath(goal, limit=self.max_ubran_velocity)
 
     def findSegmentColision(self, path: Vec2) -> Optional[Vec2]:
         """
