@@ -608,61 +608,6 @@ class TangentBug():
                                 if abs(closest_point.angle(p)) > math.pi / 2), default=math.inf)
         return closest_point.length() + opposing_distance
 
-    def findConnectedPoints(self, points: Iterable[Vec2]) -> Set[Vec2]:
-        # round the vectors to use avoid including the same point twice,
-        # due to floating point precision loss
-        connected = set(p.round() for p in points)
-        nearby_points = set(p.round() for p in self.nearby_points)
-
-        nearby_connected = connected.intersection(nearby_points)
-        remaining_points = nearby_points.difference(nearby_connected)
-
-        # establish connectivity between points,
-        # by iterativly adding points that are directly connected,
-        # untill all connected points are in the set
-        while True:
-            addition = set()
-
-            for point in remaining_points:
-                if any(self.checkPointsConnected(p, point) for p in nearby_connected):
-                    addition.add(point)
-
-            if len(addition) == 0:
-                break
-            else:
-                nearby_connected.update(addition)
-                remaining_points.difference_update(addition)
-
-        return nearby_connected
-
-    def getNextFollowDirection(self, followed_point: Vec2, path_hint: Vec2) -> Tuple[Vec2, Vec2]:
-        """
-        given an closest point on obstacle currently being followed,
-        return the direction the drone should go to next to keep following it,
-        and the direction of the path hint that should be used next time, in body frame
-        """
-
-        tangent = followed_point.perpendicular()
-
-        # ensure that the direction taken by the drone is consistant across iterations
-        tangent = tangent if abs(path_hint.angle(
-            tangent)) <= math.pi / 2 else -tangent
-
-        # maintain a fixed distance from the followed obstacle,
-        # to both avoid hitting hit by being too close,
-        # or hitting other obstacles by flying too far away
-        distance_offset = followed_point.length() - self.boundary_distance
-
-        course_correction = followed_point.normalize() * distance_offset
-
-        # if the difference between the desired distance and the actual distance is too big,
-        # ignore the tangent and focus on cource correcting,
-        # to avoid taking wide turns or rotating around a point on the boundary
-        flight_direction = tangent + course_correction\
-            if abs(distance_offset) < self.offset_threshhold else course_correction
-
-        return flight_direction, tangent
-
     def getNextFollowPoint(self, followed_point: Vec2, right_follow: bool) -> Vec2:
         """
         given a point on an obstacle being followed,
@@ -694,45 +639,3 @@ class TangentBug():
                 away_point = rotated
 
         return away_point
-
-
-class ObstacleMap:  # used in the bonux task for keeping track of points in the entire map
-    """
-    a map describing the obstacles observed by the drone in its path
-    """
-
-    # each element corresponds to a meter by meter pixel on the map
-    # the indicies are mapped to coordinates,
-    # in the range specified by *_start and *_end for each axis
-    #
-    # an inhabited pixel is marked with 1 and an empty one with 0
-    array: bytearray
-    y_start: int
-    y_end: int
-    x_start: int
-    x_end: int
-
-    def __init__(self, y_start: int = -1300, y_end: int = 200, x_start: int = -1300, x_end: int = 200) -> None:
-        self.y_start = y_start
-        self.y_end = y_end
-        self.x_start = x_start
-        self.x_end = x_end
-        self.array = bytearray((y_end - y_start) * (x_end - x_start))
-
-    def row_size(self) -> int:
-        return (self.y_end - self.y_start)
-
-    def column_size(self) -> int:
-        return (self.x_end - self.x_start)
-
-    def mark(self, point: Vec2):
-        """
-        mark the given point as an obstacle on the map
-        """
-        x = math.floor(point.x)
-        y = math.floor(point.y)
-
-        i = y - self.y_start
-        j = x - self.x_start
-
-        self.array[i * self.row_size() + j] = 1
