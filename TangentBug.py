@@ -27,10 +27,14 @@ class TangentBug():
     how far two points need to be from each other to be considered part of the same obstacle
     """
 
-    max_velocity: float = 10
+    max_ubran_velocity: float = 10
     """
-    the maximum velocity the drone can have while flying.
-    can be lower (for example while turing)
+    the maximum velocity the drone can have while flying near buildings.
+    """
+
+    max_highway_velocity: float = 25
+    """
+    the maximum velocity the drone can have while flying above the open road.
     """
 
     time_step: float = 1 / 50
@@ -90,6 +94,19 @@ class TangentBug():
     """
     a velocity small enough for the current position to be reachable in time,
     as otherwise the drone might ignore the command.
+    """
+
+    known_waypoint: Vec2 = Vec2(-1173, -509)
+    """
+    a point on the map, known for being an a road intersection,
+    used as a reference for finding other intersections on the grid
+    """
+
+    grid_x_interval: float = 170
+    grid_y_interval: float = 195
+    """
+    the values along the x and y coordinates, such that after each step in either the x or y direction,
+    there is another intersection on the grid (within the borders of the map).
     """
 
     client: DroneClient
@@ -159,7 +176,7 @@ class TangentBug():
         """
         self.autoFlyTo(Vec2(0, 0))
 
-    def autoFlyTo(self, point: Vec2, limit: float = max_velocity):
+    def autoFlyTo(self, point: Vec2, limit: float = max_ubran_velocity):
         """
         flies the drone to a given position in body frame,
         chooses the velocity automatically, based on the given point
@@ -182,7 +199,8 @@ class TangentBug():
             else:
                 self.vertigo -= 1
 
-            velocity = min(limit, safety_velocity)
+            # slow down next to goal, to avoid hitting obstacles near waypoints
+            velocity = min(limit, safety_velocity, self.goal.length())
 
         # calculate the distance the drone should travel in the given direction,
         # so that it takes atleast as much time
@@ -300,7 +318,7 @@ class TangentBug():
         """
         return p1.distance(p2) <= self.connection_distance
 
-    def findPath(self, goal: Vec2):
+    def findPath(self, goal: Vec2, limit: float = max_ubran_velocity):
         """
         flies the drone towards the goal,
         avoiding obstacles as necessary using the tangent bug algorithm
@@ -332,7 +350,7 @@ class TangentBug():
                     motion_to_goal_planner = self.motionToGoal()
                     following_boundary = False
                 else:
-                    self.autoFlyTo(point)
+                    self.autoFlyTo(point, limit=limit)
 
             else:
                 point = next(motion_to_goal_planner, None)
@@ -343,11 +361,38 @@ class TangentBug():
                         last_direction)
                     following_boundary = True
                 else:
-                    self.autoFlyTo(point)
+                    self.autoFlyTo(point, limit=limit)
                     last_direction = point.rotate(
                         -self.orientation).normalize()
 
             time.sleep(self.time_step)
+
+    def findTaxicabPath(self, goal: Vec2):
+        at_waypoint = False
+        while True:
+            position = self.client.getPose().pos
+            pos = Vec2(position.x_m, position.y_m)
+
+            # find the nearest waypoint to the position
+            rel = pos - self.known_waypoint
+            floored = Vec2(round(rel.x / self.grid_x_interval) * self.grid_x_interval,
+                           round(rel.y / self.grid_y_interval) * self.grid_y_interval)
+            closest_waypoint = floored + self.known_waypoint
+
+            next_waypoint = min((closest_waypoint + p for p in
+                                 [Vec2(self.grid_x_interval, 0), Vec2(-self.grid_x_interval, 0),
+                                  Vec2(0, self.grid_y_interval), Vec2(0, -self.grid_y_interval)]), key=lambda p: p.distance(goal))
+
+            if next_waypoint.distance(goal) < pos.distance(goal):
+                if at_waypoint:
+                    self.findPath(next_waypoint,
+                                  limit=self.max_highway_velocity)
+                else:
+                    self.findPath(next_waypoint)
+                at_waypoint = True
+            else:
+                self.findPath(goal)
+                return
 
     def findSegmentColision(self, path: Vec2) -> Optional[Vec2]:
         """

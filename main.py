@@ -33,4 +33,4 @@ if __name__ == "__main__":
 
     bug = TangentBug(client, plane)
     for p in positions[1:]:
-        bug.findPath(p)
+        bug.findTaxicabPath(p)
