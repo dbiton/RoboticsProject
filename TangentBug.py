@@ -96,7 +96,7 @@ class TangentBug():
     as otherwise the drone might ignore the command.
     """
 
-    known_waypoint: Vec2 = Vec2(-1178, -509)
+    known_waypoint: Vec2 = Vec2(-1181, -509)
     """
     a point on the map, known for being an a road intersection,
     used as a reference for finding other intersections on the grid
